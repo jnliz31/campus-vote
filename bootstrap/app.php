@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
             'auth' => \App\Http\Middleware\Authenticate::class,
+            'campus.verified' => \App\Http\Middleware\EnsureCampusVerified::class,
         ]);
         
         // Ensure CSRF protection on web routes

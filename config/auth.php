@@ -15,6 +15,10 @@ return [
             'driver' => 'session',
             'provider' => 'admins',
         ],
+        'voter' => [  // ← Make sure this exists
+            'driver' => 'session',
+            'provider' => 'voters',
+        ],
     ],
 
     'providers' => [

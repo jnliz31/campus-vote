@@ -2,24 +2,45 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Notifications\Notifiable;
 
 class Voter extends Authenticatable
 {
-    protected $fillable = ['name', 'email', 'password', 'course'];
+    use HasFactory, Notifiable;
 
-    protected $hidden = ['password'];
+    protected $fillable = [
+        'name',
+        'email',
+        'campus_email',
+        'password',
+        'course',
+        'google_id',
+        'student_id',
+        'avatar',
+        'is_verified',
+    ];
 
-    protected function casts(): array
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    protected $casts = [
+        'is_verified' => 'boolean',
+        'password' => 'hashed',
+    ];
+
+    // Relationship with votes
+    public function votes()
     {
-        return [
-            'password' => 'hashed',
-        ];
+        return $this->hasMany(Vote::class, 'voter_id');
     }
 
-    public function votes(): HasMany
+    // Check if voter has voted in specific election
+    public function hasVotedIn($electionId)
     {
-        return $this->hasMany(Vote::class);
+        return $this->votes()->where('election_id', $electionId)->exists();
     }
 }

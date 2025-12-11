@@ -6,6 +6,7 @@ use App\Http\Controllers\Voter\VotingController;
 use App\Http\Controllers\Admin\ElectionController;
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Auth\VoterAuthController;
+use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Auth\VoterRegistrationController;
@@ -31,8 +32,17 @@ Route::get('/', function () {
 Route::prefix('voter')->group(function () {
     // Guest routes (not logged in)
     Route::middleware('guest:voter')->group(function () {
+        // Login
         Route::get('login', [VoterAuthController::class, 'showLogin'])->name('voter.login');
         Route::post('login', [VoterAuthController::class, 'login']);
+        
+        // Google OAuth Routes
+        Route::get('auth/google', [GoogleAuthController::class, 'redirect'])->name('voter.google.redirect');
+        Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])->name('voter.google.callback');
+        
+        // Registration (backup method)
+        Route::get('register', [VoterRegistrationController::class, 'showRegistrationForm'])->name('voter.register.form');
+        Route::post('register', [VoterRegistrationController::class, 'register'])->name('voter.register');
     });
 
     // Authenticated routes (logged in)
@@ -66,7 +76,7 @@ Route::prefix('admin')->group(function () {
 |--------------------------------------------------------------------------
 */
 
-Route::prefix('voter')->middleware('auth:voter')->group(function () {
+Route::prefix('voter')->middleware(['auth:voter'])->group(function () {
     Route::get('dashboard', [VotingController::class, 'dashboard'])->name('voter.dashboard');
     Route::get('vote', [VotingController::class, 'vote'])->name('voter.vote');
     Route::post('vote', [VotingController::class, 'submitVote'])->name('voter.submit');
@@ -112,12 +122,8 @@ Route::prefix('admin')->middleware('auth:admin')->group(function () {
     Route::controller(AnnouncementController::class)->group(function () {
         Route::get('announcements', 'index')->name('admin.announcements.index');
         Route::post('announcements', 'store')->name('admin.announcements.store');
-        Route::get('announcements/{announcement}/edit', 'edit')->name('admin.announcements.edit');  // NEW
-        Route::put('announcements/{announcement}', 'update')->name('admin.announcements.update');   // NEW
+        Route::get('announcements/{announcement}/edit', 'edit')->name('admin.announcements.edit');
+        Route::put('announcements/{announcement}', 'update')->name('admin.announcements.update');
         Route::delete('announcements/{announcement}', 'destroy')->name('admin.announcements.destroy');
     });
-});
-Route::prefix('voter')->middleware('guest:voter')->group(function () {
-    Route::get('register', [VoterRegistrationController::class, 'showRegistrationForm'])->name('voter.register.form');
-    Route::post('register', [VoterRegistrationController::class, 'register'])->name('voter.register');
 });

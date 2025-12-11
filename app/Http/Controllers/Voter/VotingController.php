@@ -8,6 +8,7 @@ use App\Models\Candidate;
 use App\Models\Announcement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 
@@ -103,19 +104,36 @@ class VotingController extends Controller
                 throw new \Exception('Invalid candidate for position.');
             }
             
+            // Create vote with tracking
             Vote::create([
                 'voter_id' => $voter->id,
                 'candidate_id' => $candidateId,
                 'election_id' => $election->id,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
             ]);
         }
+        
         DB::commit();
+        
+        Log::info('Votes submitted', [
+            'voter_id' => $voter->id,
+            'election_id' => $election->id,
+            'ip' => $request->ip(),
+        ]);
         
         return redirect()
             ->route('voter.votes')
             ->with('success', 'Your vote has been submitted successfully!');
+            
     } catch (\Exception $e) {
         DB::rollBack();
+        
+        Log::error('Vote submission error', [
+            'voter_id' => $voter->id,
+            'error' => $e->getMessage(),
+        ]);
+        
         return back()->with('error', 'An error occurred while submitting your vote. Please try again.');
     }
 }
