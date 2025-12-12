@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\ResultController;
 use App\Http\Controllers\Voter\VotingController;
+use App\Http\Controllers\Voter\ElectionStatusController;
 use App\Http\Controllers\Admin\ElectionController;
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Auth\VoterAuthController;
@@ -35,11 +36,11 @@ Route::prefix('voter')->group(function () {
         // Login
         Route::get('login', [VoterAuthController::class, 'showLogin'])->name('voter.login');
         Route::post('login', [VoterAuthController::class, 'login']);
-        
+
         // Google OAuth Routes
         Route::get('auth/google', [GoogleAuthController::class, 'redirect'])->name('voter.google.redirect');
         Route::get('auth/google/callback', [GoogleAuthController::class, 'callback'])->name('voter.google.callback');
-        
+
         // Registration (backup method)
         Route::get('register', [VoterRegistrationController::class, 'showRegistrationForm'])->name('voter.register.form');
         Route::post('register', [VoterRegistrationController::class, 'register'])->name('voter.register');
@@ -83,6 +84,13 @@ Route::prefix('voter')->middleware(['auth:voter'])->group(function () {
     Route::get('votes', [VotingController::class, 'showVotes'])->name('voter.votes');
     Route::get('results', [VotingController::class, 'results'])->name('voter.results');
     Route::get('profile', [VotingController::class, 'profile'])->name('voter.profile');
+
+    // API routes for real-time updates
+    Route::prefix('api')->group(function () {
+        Route::get('election/status', [ElectionStatusController::class, 'status'])->name('voter.api.status');
+        Route::get('election/results', [ElectionStatusController::class, 'results'])->name('voter.api.results');
+        Route::get('election/live', [ElectionStatusController::class, 'liveUpdates'])->name('voter.api.live');
+    });
 });
 
 /*

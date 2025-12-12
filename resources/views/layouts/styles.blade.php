@@ -499,47 +499,49 @@
         color: #333;
         line-height: 1.5;
     }
+
     /* Edit button styling */
-.btn-primary {
-    background-color: #0366d6;
-    color: white;
-}
-
-.btn-primary:hover {
-    background-color: #0256c1;
-}
-
-/* Ensure buttons are inline */
-td form {
-    display: inline;
-}
-
-/* Modal improvements */
-.modal-overlay {
-    backdrop-filter: blur(5px);
-}
-
-.modal {
-    animation: slideDown 0.3s ease-out;
-}
-
-@keyframes slideDown {
-    from {
-        transform: translateY(-50px);
-        opacity: 0;
+    .btn-primary {
+        background-color: #0366d6;
+        color: white;
     }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
 
-/* Show edited timestamp in italics */
-td .edited-time {
-    font-size: 12px;
-    color: #999;
-    font-style: italic;
-}
+    .btn-primary:hover {
+        background-color: #0256c1;
+    }
+
+    /* Ensure buttons are inline */
+    td form {
+        display: inline;
+    }
+
+    /* Modal improvements */
+    .modal-overlay {
+        backdrop-filter: blur(5px);
+    }
+
+    .modal {
+        animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+        from {
+            transform: translateY(-50px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    /* Show edited timestamp in italics */
+    td .edited-time {
+        font-size: 12px;
+        color: #999;
+        font-style: italic;
+    }
 
     /* Welcome Section */
     .welcome-section {
@@ -761,6 +763,112 @@ td .edited-time {
 
     .progress-bar.third {
         background-color: #6c757d;
+    }
+
+    /* Real-Time Election Updates Styles */
+    #total-votes {
+        transition: all 0.3s ease;
+        font-weight: 600;
+        font-size: 16px;
+        color: #333;
+    }
+
+    #total-votes.updating {
+        color: #28a745;
+        transform: scale(1.15);
+    }
+
+    #last-updated {
+        font-weight: 600;
+        color: #333;
+        transition: color 0.3s ease;
+    }
+
+    #election-status-badge {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease;
+    }
+
+    #election-status-badge.active {
+        background-color: #28a745;
+        color: white;
+    }
+
+    #election-status-badge.ended {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    #live-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #28a745;
+        margin-left: 8px;
+    }
+
+    .live-dot {
+        width: 6px;
+        height: 6px;
+        background-color: #28a745;
+        border-radius: 50%;
+        animation: pulse-live 1.5s infinite;
+    }
+
+    @keyframes pulse-live {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.4;
+        }
+    }
+
+    /* Vote count animation */
+    .vote-count {
+        transition: all 0.4s ease;
+        font-weight: 600;
+    }
+
+    .percentage {
+        font-weight: 600;
+        color: #0366d6;
+    }
+
+    /* Candidate result hover effect */
+    .candidate-result {
+        transition: transform 0.2s ease, background-color 0.2s ease;
+        border-radius: 4px;
+    }
+
+    .candidate-result:hover {
+        transform: translateX(4px);
+        background-color: #f9f9f9;
+    }
+
+    /* Results container fade in */
+    #results-container {
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
     }
 
     /* Profile Page */

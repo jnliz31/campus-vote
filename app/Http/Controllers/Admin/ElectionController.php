@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Election;
 use App\Models\Position;
 use App\Models\Candidate;
+use App\Events\ElectionEnded;
 use Illuminate\Http\Request;
 
 class ElectionController extends Controller
@@ -14,7 +15,7 @@ class ElectionController extends Controller
     {
         $activeElection = Election::where('status', 'active')->with(['positions.candidates'])->first();
         $elections = Election::with(['positions.candidates'])->get();
-        
+
         $stats = [
             'active_positions' => 0,
             'total_candidates' => 0,
@@ -115,6 +116,10 @@ class ElectionController extends Controller
     public function endElection(Election $election)
     {
         $election->update(['status' => 'ended']);
+
+        // Dispatch event to broadcast election results to all connected voters
+        ElectionEnded::dispatch($election);
+
         return redirect()->route('admin.elections.index')->with('success', 'Election ended successfully!');
     }
 
