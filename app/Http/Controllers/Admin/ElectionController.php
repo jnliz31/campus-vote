@@ -13,6 +13,10 @@ class ElectionController extends Controller
 {
     public function index()
     {
+        if (!request()->expectsJson()) {
+            return view('index');
+        }
+
         $elections = Election::with(['positions.candidates', 'votes'])->get();
 
         $electionsData = $elections->map(function ($election) {
@@ -33,8 +37,7 @@ class ElectionController extends Controller
 
     public function create()
     {
-        $activeElection = Election::where('status', 'active')->first();
-        return view('admin.create-election', compact('activeElection'));
+        return view('index');
     }
 
     public function store(Request $request)
@@ -70,8 +73,15 @@ class ElectionController extends Controller
 
     public function edit(Election $election)
     {
+        if (!request()->expectsJson()) {
+            return view('index');
+        }
+
         $election->load(['positions.candidates']);
-        return view('admin.edit-election', compact('election'));
+
+        return response()->json([
+            'election' => $election,
+        ]);
     }
 
     public function update(Request $request, Election $election)

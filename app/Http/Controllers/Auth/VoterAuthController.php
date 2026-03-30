@@ -10,8 +10,7 @@ class VoterAuthController extends Controller
 {
     public function showLogin()
     {
-        // For SPA - return index.html which is served by fallback route
-        return view('auth.voter-login');
+        return view('index');
     }
 
     public function login(Request $request)

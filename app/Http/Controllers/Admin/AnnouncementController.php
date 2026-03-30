@@ -10,6 +10,10 @@ class AnnouncementController extends Controller
 {
     public function index()
     {
+        if (!request()->expectsJson()) {
+            return view('index');
+        }
+
         $announcements = Announcement::orderBy('created_at', 'desc')->get();
         return response()->json([
             'announcements' => $announcements,

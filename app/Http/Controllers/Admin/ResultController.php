@@ -5,11 +5,16 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Election;
 use App\Models\Voter;
+use Illuminate\Http\Request;
 
 class ResultController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        if (!$request->expectsJson()) {
+            return view('index');
+        }
+
         $elections = Election::with(['positions.candidates.votes'])->get();
 
         $results = $elections->map(function ($election) {

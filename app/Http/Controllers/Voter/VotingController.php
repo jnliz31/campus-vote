@@ -21,6 +21,10 @@ class VotingController extends Controller
      */
     public function dashboard()
     {
+        if (!request()->expectsJson()) {
+            return view('index');
+        }
+
         $voter = Auth::guard('voter')->user();
         $announcements = Announcement::orderBy('created_at', 'desc')->limit(4)->get();
         $activeElection = Election::where('status', 'active')->first();
@@ -46,6 +50,10 @@ class VotingController extends Controller
      */
     public function vote()
     {
+        if (!request()->expectsJson()) {
+            return view('index');
+        }
+
         $voter = Auth::guard('voter')->user();
         $election = Election::where('status', 'active')->with(['positions.candidates'])->first();
 
@@ -168,6 +176,10 @@ class VotingController extends Controller
      */
     public function showVotes()
     {
+        if (!request()->expectsJson()) {
+            return view('index');
+        }
+
         $voter = Auth::guard('voter')->user();
         
         $votes = Vote::where('voter_id', $voter->id)
@@ -198,6 +210,10 @@ class VotingController extends Controller
      */
     public function results()
     {
+        if (!request()->expectsJson()) {
+            return view('index');
+        }
+
         // Get all elections with results
         $elections = Election::with(['positions.candidates.votes'])->get();
 
@@ -238,6 +254,10 @@ class VotingController extends Controller
      */
     public function profile()
     {
+        if (!request()->expectsJson()) {
+            return view('index');
+        }
+
         $voter = Auth::guard('voter')->user();
         $votes_count = Vote::where('voter_id', $voter->id)->count();
 

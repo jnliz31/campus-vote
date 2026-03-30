@@ -12,7 +12,7 @@ class VoterRegistrationController extends Controller
 {
     public function showRegistrationForm()
     {
-        return view('auth.voter-register');
+        return view('index');
     }
 
     public function register(Request $request)

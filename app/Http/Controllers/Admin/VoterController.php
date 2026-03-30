@@ -4,11 +4,16 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Voter;
+use Illuminate\Http\Request;
 
 class VoterController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        if (!$request->expectsJson()) {
+            return view('index');
+        }
+
         $voters = Voter::orderBy('name')->get();
         return response()->json([
             'voters' => $voters,
