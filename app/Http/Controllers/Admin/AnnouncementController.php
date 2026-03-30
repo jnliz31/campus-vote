@@ -11,7 +11,9 @@ class AnnouncementController extends Controller
     public function index()
     {
         $announcements = Announcement::orderBy('created_at', 'desc')->get();
-        return view('admin.announcements', compact('announcements'));
+        return response()->json([
+            'announcements' => $announcements,
+        ]);
     }
 
     public function store(Request $request)
@@ -20,18 +22,22 @@ class AnnouncementController extends Controller
             'content' => 'required|string|max:1000',
         ]);
 
-        Announcement::create([
+        $announcement = Announcement::create([
             'content' => $request->input('content')
         ]);
         
-        return redirect()->route('admin.announcements.index')->with('success', 'Announcement created successfully!');
+        return response()->json([
+            'success' => true,
+            'message' => 'Announcement created successfully!',
+            'announcement' => $announcement,
+        ], 201);
     }
-      // NEW: Show edit form
+
     public function edit(Announcement $announcement)
     {
-        return response()->json($announcement);
+        return response()->json(['announcement' => $announcement]);
     }
-     // NEW: Update announcement
+
     public function update(Request $request, Announcement $announcement)
     {
         $validated = $request->validate([
@@ -40,14 +46,19 @@ class AnnouncementController extends Controller
 
         $announcement->update($validated);
 
-        return redirect()
-            ->route('admin.announcements.index')
-            ->with('success', 'Announcement updated successfully!');
+        return response()->json([
+            'success' => true,
+            'message' => 'Announcement updated successfully!',
+            'announcement' => $announcement,
+        ]);
     }
 
     public function destroy(Announcement $announcement)
     {
         $announcement->delete();
-        return redirect()->route('admin.announcements.index')->with('success', 'Announcement deleted successfully!');
+        return response()->json([
+            'success' => true,
+            'message' => 'Announcement deleted successfully!',
+        ]);
     }
 }

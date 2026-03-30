@@ -19,9 +19,9 @@ use App\Http\Controllers\Admin\VoterController as AdminVoterController;
 |--------------------------------------------------------------------------
 */
 
-// Landing page - redirect to voter login
+// Landing page - serve SPA
 Route::get('/', function () {
-    return redirect()->route('voter.login');
+    return view('index');
 });
 
 /*
@@ -134,4 +134,14 @@ Route::prefix('admin')->middleware('auth:admin')->group(function () {
         Route::put('announcements/{announcement}', 'update')->name('admin.announcements.update');
         Route::delete('announcements/{announcement}', 'destroy')->name('admin.announcements.destroy');
     });
+});
+
+/*
+|--------------------------------------------------------------------------
+| SPA Catch-All Route  (must be last)
+|--------------------------------------------------------------------------
+*/
+// Serve Vue SPA for all unmatched routes
+Route::fallback(function () {
+    return view('index');
 });

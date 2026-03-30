@@ -10,12 +10,17 @@ class VoterController extends Controller
     public function index()
     {
         $voters = Voter::orderBy('name')->get();
-        return view('admin.voters', compact('voters'));
+        return response()->json([
+            'voters' => $voters,
+        ]);
     }
 
     public function destroy(Voter $voter)
     {
         $voter->delete();
-        return redirect()->route('admin.voters.index')->with('success', 'Voter deleted successfully!');
+        return response()->json([
+            'success' => true,
+            'message' => 'Voter deleted successfully!',
+        ]);
     }
 }

@@ -12,28 +12,18 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $activeElection = Election::where('status', 'active')->with(['positions.candidates.votes'])->first();
-        
-        $totalPositions = $activeElection ? $activeElection->positions->count() : 0;
-        $totalNominees = $activeElection ? $activeElection->candidates->count() : 0;
-        $totalVoted = $activeElection ? Vote::where('election_id', $activeElection->id)->distinct('voter_id')->count('voter_id') : 0;
+        $totalElections = Election::count();
+        $activeElections = Election::where('status', 'active')->count();
+        $totalVoters = \App\Models\Voter::count();
+        $totalVotes = Vote::count();
 
-        $results = [];
-        if ($activeElection) {
-            foreach ($activeElection->positions as $position) {
-                $candidates = $position->candidates()->withCount('votes')->get();
-                $totalVotes = $candidates->sum('votes_count');
-                
-                $results[$position->name] = $candidates->map(function ($candidate) use ($totalVotes) {
-                    return [
-                        'name' => $candidate->name,
-                        'votes' => $candidate->votes_count,
-                        'percentage' => $totalVotes > 0 ? round(($candidate->votes_count / $totalVotes) * 100) : 0,
-                    ];
-                })->sortByDesc('votes');
-            }
-        }
-
-        return view('admin.dashboard', compact('totalPositions', 'totalNominees', 'totalVoted', 'results'));
+        return response()->json([
+            'stats' => [
+                'total_elections' => $totalElections,
+                'active_elections' => $activeElections,
+                'total_voters' => $totalVoters,
+                'total_votes' => $totalVotes,
+            ]
+        ]);
     }
 }

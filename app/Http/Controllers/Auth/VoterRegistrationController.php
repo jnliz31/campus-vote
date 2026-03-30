@@ -21,20 +21,28 @@ class VoterRegistrationController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:voters',
             'password' => 'required|string|min:8|confirmed',
-            'course' => 'required|string|max:255',
+            'course' => 'nullable|string|max:255',
         ]);
 
         $voter = Voter::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'course' => $request->course,
+            'course' => $request->course ?? '',
         ]);
 
         event(new Registered($voter));
 
-        auth()->guard('voter')->login($voter);
+        // Return JSON for API
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Registration successful. Please log in.',
+                'voter' => $voter
+            ], 201);
+        }
 
+        auth()->guard('voter')->login($voter);
         return redirect()->route('voter.dashboard');
     }
 }

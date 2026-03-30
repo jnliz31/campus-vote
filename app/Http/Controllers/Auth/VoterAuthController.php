@@ -10,6 +10,7 @@ class VoterAuthController extends Controller
 {
     public function showLogin()
     {
+        // For SPA - return index.html which is served by fallback route
         return view('auth.voter-login');
     }
 
@@ -22,7 +23,25 @@ class VoterAuthController extends Controller
 
         if (Auth::guard('voter')->attempt($credentials)) {
             $request->session()->regenerate();
+            
+            // Return JSON for API
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Login successful',
+                    'voter' => Auth::guard('voter')->user()
+                ]);
+            }
+            
             return redirect()->intended('/voter/dashboard');
+        }
+
+        // Return JSON error for API
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid credentials'
+            ], 401);
         }
 
         return back()->withErrors([
@@ -35,6 +54,11 @@ class VoterAuthController extends Controller
         Auth::guard('voter')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+        
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+        
         return redirect('/');
     }
 }

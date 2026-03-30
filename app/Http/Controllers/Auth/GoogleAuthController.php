@@ -37,6 +37,12 @@ class GoogleAuthController extends Controller
         
         // Validate campus email domain
         if (!$this->isValidCampusEmail($googleUser->getEmail())) {
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please use your campus email address (@' . env('ALLOWED_CAMPUS_DOMAIN') . ').'
+                ], 403);
+            }
             return redirect()->route('voter.login')
                 ->withErrors([
                     'email' => 'Please use your campus email address (@' . env('ALLOWED_CAMPUS_DOMAIN') . ').'
@@ -66,6 +72,16 @@ class GoogleAuthController extends Controller
             'email' => $voter->campus_email
         ]);
 
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Welcome back, ' . $voter->name . '!',
+                'auth_token' => session()->get('PHPSESSID'),
+                'user_role' => 'voter',
+                'user' => $voter,
+            ]);
+        }
+
         return redirect()->route('voter.dashboard')
             ->with('success', 'Welcome back, ' . $voter->name . '!');
 
@@ -77,6 +93,13 @@ class GoogleAuthController extends Controller
             'line' => $e->getLine(),
             'trace' => $e->getTraceAsString()
         ]);
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication failed: ' . $e->getMessage()
+            ], 401);
+        }
 
         return redirect()->route('voter.login')
             ->withErrors([
@@ -155,6 +178,13 @@ class GoogleAuthController extends Controller
         Auth::guard('voter')->logout();
         request()->session()->invalidate();
         request()->session()->regenerateToken();
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'You have been logged out successfully.'
+            ]);
+        }
 
         return redirect()->route('voter.login')
             ->with('success', 'You have been logged out successfully.');

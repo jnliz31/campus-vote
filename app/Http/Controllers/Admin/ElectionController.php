@@ -13,23 +13,22 @@ class ElectionController extends Controller
 {
     public function index()
     {
-        $activeElection = Election::where('status', 'active')->with(['positions.candidates'])->first();
-        $elections = Election::with(['positions.candidates'])->get();
+        $elections = Election::with(['positions.candidates', 'votes'])->get();
 
-        $stats = [
-            'active_positions' => 0,
-            'total_candidates' => 0,
-            'votes_cast' => 0,
-            'participation_rate' => 0,
-        ];
+        $electionsData = $elections->map(function ($election) {
+            return [
+                'id' => $election->id,
+                'title' => $election->title,
+                'status' => $election->status,
+                'positions_count' => $election->positions->count(),
+                'votes_count' => $election->votes->count(),
+                'created_at' => $election->created_at,
+            ];
+        });
 
-        if ($activeElection) {
-            $stats['active_positions'] = $activeElection->positions->count();
-            $stats['total_candidates'] = $activeElection->candidates->count();
-            $stats['votes_cast'] = $activeElection->votes->count();
-        }
-
-        return view('admin.manage-election', compact('activeElection', 'elections', 'stats'));
+        return response()->json([
+            'elections' => $electionsData,
+        ]);
     }
 
     public function create()
@@ -44,8 +43,6 @@ class ElectionController extends Controller
             'title' => 'required|string|max:255',
             'positions' => 'required|array|min:1',
             'positions.*.name' => 'required|string|max:255',
-            'positions.*.candidates' => 'required|array|min:1',
-            'positions.*.candidates.*' => 'required|string|max:255',
         ]);
 
         // End any active elections
@@ -57,21 +54,18 @@ class ElectionController extends Controller
         ]);
 
         foreach ($request->positions as $index => $positionData) {
-            $position = Position::create([
+            Position::create([
                 'election_id' => $election->id,
                 'name' => $positionData['name'],
                 'order' => $index,
             ]);
-
-            foreach ($positionData['candidates'] as $candidateName) {
-                Candidate::create([
-                    'position_id' => $position->id,
-                    'name' => $candidateName,
-                ]);
-            }
         }
 
-        return redirect()->route('admin.elections.index')->with('success', 'Election created successfully!');
+        return response()->json([
+            'success' => true,
+            'message' => 'Election created successfully!',
+            'election' => $election,
+        ], 201);
     }
 
     public function edit(Election $election)
@@ -120,12 +114,18 @@ class ElectionController extends Controller
         // Dispatch event to broadcast election results to all connected voters
         ElectionEnded::dispatch($election);
 
-        return redirect()->route('admin.elections.index')->with('success', 'Election ended successfully!');
+        return response()->json([
+            'success' => true,
+            'message' => 'Election ended successfully!',
+        ]);
     }
 
     public function destroy(Election $election)
     {
         $election->delete();
-        return redirect()->route('admin.elections.index')->with('success', 'Election deleted successfully!');
+        return response()->json([
+            'success' => true,
+            'message' => 'Election deleted successfully!',
+        ]);
     }
 }

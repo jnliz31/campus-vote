@@ -25,7 +25,20 @@ class VotingController extends Controller
         $announcements = Announcement::orderBy('created_at', 'desc')->limit(4)->get();
         $activeElection = Election::where('status', 'active')->first();
 
-        return view('voter.dashboard', compact('voter', 'announcements', 'activeElection'));
+        // Check if has voted in active election
+        $hasVoted = false;
+        if ($activeElection) {
+            $hasVoted = Vote::where('voter_id', $voter->id)
+                ->where('election_id', $activeElection->id)
+                ->exists();
+        }
+
+        return response()->json([
+            'voter' => $voter,
+            'announcements' => $announcements,
+            'active_election' => $activeElection,
+            'has_voted' => $hasVoted,
+        ]);
     }
 
     /**
@@ -37,7 +50,9 @@ class VotingController extends Controller
         $election = Election::where('status', 'active')->with(['positions.candidates'])->first();
 
         if (!$election) {
-            return redirect()->route('voter.dashboard')->with('error', 'No active election at the moment.');
+            return response()->json([
+                'error' => 'No active election at the moment'
+            ], 404);
         }
 
         // Check if voter has already voted
@@ -46,10 +61,16 @@ class VotingController extends Controller
             ->exists();
 
         if ($hasVoted) {
-            return redirect()->route('voter.votes')->with('info', 'You have already voted in this election.');
+            return response()->json([
+                'error' => 'You have already voted in this election',
+                'has_voted' => true
+            ], 403);
         }
 
-        return view('voter.vote', compact('election'));
+        return response()->json([
+            'election' => $election,
+            'has_voted' => false,
+        ]);
     }
 
     /**
@@ -63,9 +84,9 @@ class VotingController extends Controller
             ->first();
 
         if (!$election) {
-            return redirect()
-                ->route('voter.dashboard')
-                ->with('error', 'No active election found.');
+            return response()->json([
+                'error' => 'No active election found'
+            ], 404);
         }
 
         // Check if already voted (prevent duplicate)
@@ -74,9 +95,9 @@ class VotingController extends Controller
             ->exists();
 
         if ($hasVoted) {
-            return redirect()
-                ->route('voter.votes')
-                ->with('error', 'You have already voted in this election.');
+            return response()->json([
+                'error' => 'You have already voted in this election'
+            ], 403);
         }
 
         // Validate votes
@@ -89,7 +110,9 @@ class VotingController extends Controller
         $positionIds = $election->positions->pluck('id')->toArray();
 
         if (count($request->votes) !== count($positionIds)) {
-            return back()->with('error', 'You must vote for all positions.');
+            return response()->json([
+                'error' => 'You must vote for all positions'
+            ], 422);
         }
 
         DB::beginTransaction();
@@ -122,9 +145,10 @@ class VotingController extends Controller
                 'ip' => $request->ip(),
             ]);
 
-            return redirect()
-                ->route('voter.votes')
-                ->with('success', 'Your vote has been submitted successfully!');
+            return response()->json([
+                'success' => true,
+                'message' => 'Your vote has been submitted successfully!',
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -133,7 +157,9 @@ class VotingController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return back()->with('error', 'An error occurred while submitting your vote. Please try again.');
+            return response()->json([
+                'error' => 'An error occurred while submitting your vote'
+            ], 500);
         }
     }
 
@@ -143,19 +169,28 @@ class VotingController extends Controller
     public function showVotes()
     {
         $voter = Auth::guard('voter')->user();
-        $election = Election::where('status', 'active')->first();
-
-        if (!$election) {
-            return view('voter.votes', ['votes' => collect(), 'election' => null]);
-        }
-
+        
         $votes = Vote::where('voter_id', $voter->id)
-            ->where('election_id', $election->id)
-            ->with(['candidate.position'])
+            ->with(['candidate.position', 'election'])
             ->get()
-            ->groupBy('candidate.position.name');
+            ->groupBy('election_id');
 
-        return view('voter.votes', compact('votes', 'election'));
+        return response()->json([
+            'votes' => $votes->map(function ($electionVotes) {
+                $election = $electionVotes->first()?->election;
+                return [
+                    'id' => $election?->id,
+                    'election' => $election,
+                    'positions' => $electionVotes->groupBy('candidate.position.name')->map(function ($positionVotes) {
+                        return [
+                            'name' => $positionVotes->first()?->candidate->position->name,
+                            'selected_candidate' => $positionVotes->first()?->candidate->name,
+                        ];
+                    })->values(),
+                    'created_at' => $electionVotes->first()?->created_at,
+                ];
+            })->values(),
+        ]);
     }
 
     /**
@@ -163,32 +198,39 @@ class VotingController extends Controller
      */
     public function results()
     {
-        // Get the most recent election (active or ended)
-        $election = Election::orderBy('id', 'desc')->with(['positions.candidates.votes'])->first();
+        // Get all elections with results
+        $elections = Election::with(['positions.candidates.votes'])->get();
 
-        if (!$election) {
-            return view('voter.results', ['election' => null, 'results' => []]);
-        }
+        $results = $elections->map(function ($election) {
+            $positions = $election->positions->map(function ($position) {
+                $candidates = $position->candidates()->withCount('votes')->get();
+                $totalVotes = $candidates->sum('votes_count');
 
-        $results = [];
-        foreach ($election->positions as $position) {
-            $candidates = $position->candidates()->withCount('votes')->get();
-            $totalVotes = $candidates->sum('votes_count');
-
-            $results[$position->name] = $candidates->map(function ($candidate) use ($totalVotes) {
                 return [
-                    'id' => $candidate->id,
-                    'name' => $candidate->name,
-                    'votes' => $candidate->votes_count,
-                    'percentage' => $totalVotes > 0 ? round(($candidate->votes_count / $totalVotes) * 100, 2) : 0,
+                    'id' => $position->id,
+                    'name' => $position->name,
+                    'candidates' => $candidates->map(function ($candidate) use ($totalVotes) {
+                        return [
+                            'id' => $candidate->id,
+                            'name' => $candidate->name,
+                            'vote_count' => $candidate->votes_count,
+                            'percentage' => $totalVotes > 0 ? round(($candidate->votes_count / $totalVotes) * 100, 2) : 0,
+                        ];
+                    })->sortByDesc('vote_count')->values(),
                 ];
-            })->sortByDesc('votes')->values();
-        }
+            })->values();
 
-        // Compute total ballots cast (distinct voters) for this election
-        $totalVotes = Vote::where('election_id', $election->id)->distinct('voter_id')->count();
+            return [
+                'id' => $election->id,
+                'title' => $election->title,
+                'status' => $election->status,
+                'positions' => $positions,
+            ];
+        });
 
-        return view('voter.results', compact('election', 'results', 'totalVotes'));
+        return response()->json([
+            'results' => $results,
+        ]);
     }
 
     /**
@@ -197,6 +239,10 @@ class VotingController extends Controller
     public function profile()
     {
         $voter = Auth::guard('voter')->user();
-        return view('voter.profile', compact('voter'));
+        $votes_count = Vote::where('voter_id', $voter->id)->count();
+
+        return response()->json([
+            'voter' => array_merge($voter->toArray(), ['votes_count' => $votes_count]),
+        ]);
     }
 }

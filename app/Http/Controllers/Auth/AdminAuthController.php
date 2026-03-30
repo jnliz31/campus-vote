@@ -22,7 +22,25 @@ class AdminAuthController extends Controller
 
         if (Auth::guard('admin')->attempt($credentials)) {
             $request->session()->regenerate();
+            
+            // Return JSON for API
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Login successful',
+                    'admin' => Auth::guard('admin')->user()
+                ]);
+            }
+            
             return redirect()->intended('/admin/dashboard');
+        }
+
+        // Return JSON error for API
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid credentials'
+            ], 401);
         }
 
         return back()->withErrors([
@@ -35,6 +53,11 @@ class AdminAuthController extends Controller
         Auth::guard('admin')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+        
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+        
         return redirect('/admin/login');
     }
 }
