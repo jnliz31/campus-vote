@@ -5,7 +5,10 @@ const api = axios.create({
     baseURL: '/',
     headers: {
         'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
     },
+    withCredentials: true,  // Send cookies with requests
 });
 
 // Add CSRF token to all requests
@@ -22,8 +25,16 @@ api.interceptors.response.use(
     response => response,
     error => {
         if (error.response?.status === 401) {
-            // Redirect to login if unauthorized
-            window.location.href = '/';
+            // Clear authentication data on 401
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_role');
+            
+            // Only redirect if not during login attempt
+            const requestUrl = error.config?.url;
+            if (requestUrl && !requestUrl.includes('/login')) {
+                // Redirect to home/login page for other unauthorized requests
+                window.location.href = '/';
+            }
         }
         return Promise.reject(error);
     }

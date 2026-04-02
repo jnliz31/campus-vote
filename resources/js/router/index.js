@@ -146,11 +146,12 @@ router.beforeEach((to, from, next) => {
     const userRole = localStorage.getItem('user_role');
 
     if (!isAuthenticated) {
-      // Redirect to login
-      next('/voter/login');
+      // Redirect to appropriate login based on route
+      const roleFromRoute = to.meta.role || 'voter';
+      next(`/${roleFromRoute}/login`);
     } else if (to.meta.role && to.meta.role !== userRole) {
       // Redirect if role doesn't match
-      next(`/${userRole}/dashboard`);
+      next(`/${userRole}/login`);
     } else {
       next();
     }

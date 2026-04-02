@@ -76,6 +76,12 @@ export default {
   },
   methods: {
     async login() {
+      // Validate inputs
+      if (!this.email || !this.password) {
+        this.error = 'Please enter both email and password';
+        return;
+      }
+
       this.loading = true;
       this.error = '';
       this.success = '';
@@ -83,18 +89,40 @@ export default {
       try {
         const response = await authAPI.adminLogin(this.email, this.password);
         
-        // Store auth info
-        localStorage.setItem('auth_token', 'authenticated');
-        localStorage.setItem('user_role', 'admin');
-        
-        this.success = 'Login successful! Redirecting...';
-        
-        // Redirect to admin dashboard
-        setTimeout(() => {
-          this.$router.push('/admin/dashboard');
-        }, 500);
+        // Check response status
+        if (response.data && response.data.success) {
+          // Store auth info
+          localStorage.setItem('auth_token', 'authenticated');
+          localStorage.setItem('user_role', 'admin');
+          
+          this.success = 'Login successful! Redirecting...';
+          
+          // Redirect to admin dashboard
+          setTimeout(() => {
+            this.$router.push('/admin/dashboard');
+          }, 500);
+        } else {
+          this.error = response.data?.message || 'Login failed. Please try again.';
+        }
       } catch (error) {
-        this.error = error.response?.data?.message || 'Invalid email or password';
+        console.error('Login error:', error);
+        
+        // Check for specific error responses
+        if (error.response?.status === 401) {
+          this.error = error.response?.data?.message || 'Invalid email or password';
+        } else if (error.response?.status === 422) {
+          // Validation error
+          const errors = error.response?.data?.errors;
+          if (errors) {
+            this.error = Object.values(errors).flat().join(', ');
+          } else {
+            this.error = 'Please check your input and try again';
+          }
+        } else if (error.response?.status >= 500) {
+          this.error = 'Server error. Please try again later.';
+        } else {
+          this.error = error.response?.data?.message || 'An error occurred. Please try again.';
+        }
       } finally {
         this.loading = false;
       }
