@@ -25,6 +25,9 @@ import AdminAnnouncements from '../components/admin/AdminAnnouncements.vue';
 import DashboardLayout from '../components/layouts/DashboardLayout.vue';
 import AuthLayout from '../components/layouts/AuthLayout.vue';
 
+// Import API for auth checks
+import { authAPI } from '../services/api.js';
+
 const routes = [
   // Auth routes (no authentication required)
   {
@@ -137,13 +140,49 @@ const router = createRouter({
   routes,
 });
 
+// Check server-side auth status and sync with localStorage
+async function syncAuthStatus() {
+  try {
+    // Check voter auth status
+    const voterCheck = await authAPI.voterCheck().catch(() => null);
+    if (voterCheck?.data?.authenticated) {
+      localStorage.setItem('auth_token', voterCheck.data.auth_token);
+      localStorage.setItem('user_role', voterCheck.data.user_role);
+      return;
+    }
+
+    // Check admin auth status
+    const adminCheck = await authAPI.adminCheck().catch(() => null);
+    if (adminCheck?.data?.authenticated) {
+      localStorage.setItem('auth_token', adminCheck.data.auth_token);
+      localStorage.setItem('user_role', adminCheck.data.user_role);
+      return;
+    }
+
+    // Not authenticated
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_role');
+  } catch (error) {
+    console.log('Auth sync error:', error);
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_role');
+  }
+}
+
 // Authentication guard
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   // Check if route requires authentication
   if (to.meta.requiresAuth) {
-    // Check if user is authenticated (based on session/token)
-    const isAuthenticated = localStorage.getItem('auth_token');
-    const userRole = localStorage.getItem('user_role');
+    // First check localStorage
+    let isAuthenticated = localStorage.getItem('auth_token');
+    let userRole = localStorage.getItem('user_role');
+
+    // If not in localStorage, check server-side
+    if (!isAuthenticated) {
+      await syncAuthStatus();
+      isAuthenticated = localStorage.getItem('auth_token');
+      userRole = localStorage.getItem('user_role');
+    }
 
     if (!isAuthenticated) {
       // Redirect to appropriate login based on route
@@ -151,7 +190,7 @@ router.beforeEach((to, from, next) => {
       next(`/${roleFromRoute}/login`);
     } else if (to.meta.role && to.meta.role !== userRole) {
       // Redirect if role doesn't match
-      next(`/${userRole}/login`);
+      next(`/${userRole}/dashboard` || `/${userRole}/login`);
     } else {
       next();
     }

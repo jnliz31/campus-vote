@@ -45,8 +45,10 @@ export const authAPI = {
     voterLogin: (email, password) => api.post('/voter/login', { email, password }),
     voterLogout: () => api.post('/voter/logout'),
     voterRegister: (data) => api.post('/voter/register', data),
+    voterCheck: () => api.get('/voter/auth/check'),
     adminLogin: (email, password) => api.post('/admin/login', { email, password }),
     adminLogout: () => api.post('/admin/logout'),
+    adminCheck: () => api.get('/admin/auth/check'),
     googleRedirect: () => window.location.href = '/voter/auth/google',
 };
 

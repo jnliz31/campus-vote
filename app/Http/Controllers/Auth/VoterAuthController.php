@@ -17,18 +17,22 @@ class VoterAuthController extends Controller
     {
         $credentials = $request->validate([
             'email' => 'required|email',
-            'password' => 'required',
+            'password' => 'required|string',
         ]);
 
-        if (Auth::guard('voter')->attempt($credentials)) {
+        if (Auth::guard('voter')->attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
+            $voter = Auth::guard('voter')->user();
             
             // Return JSON for API
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Login successful',
-                    'voter' => Auth::guard('voter')->user()
+                    'voter' => $voter,
+                    'redirect' => '/voter/dashboard',
+                    'auth_token' => 'authenticated',
+                    'user_role' => 'voter'
                 ]);
             }
             
@@ -46,6 +50,35 @@ class VoterAuthController extends Controller
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
         ])->onlyInput('email');
+    }
+
+    public function check(Request $request)
+    {
+        $voter = Auth::guard('voter')->user();
+        if ($voter) {
+            return response()->json([
+                'authenticated' => true,
+                'user_role' => 'voter',
+                'user' => $voter,
+                'auth_token' => 'authenticated'
+            ]);
+        }
+
+        $admin = Auth::guard('admin')->user();
+        if ($admin) {
+            return response()->json([
+                'authenticated' => true,
+                'user_role' => 'admin',
+                'user' => $admin,
+                'auth_token' => 'authenticated'
+            ]);
+        }
+
+        return response()->json([
+            'authenticated' => false,
+            'user_role' => null,
+            'user' => null
+        ], 401);
     }
 
     public function logout(Request $request)

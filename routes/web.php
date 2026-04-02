@@ -31,6 +31,9 @@ Route::get('/', function () {
 */
 
 Route::prefix('voter')->group(function () {
+    // Auth check (always available)
+    Route::get('auth/check', [VoterAuthController::class, 'check'])->name('voter.auth.check');
+    
     // Guest routes (not logged in)
     Route::middleware('guest:voter')->group(function () {
         // Login
@@ -59,6 +62,9 @@ Route::prefix('voter')->group(function () {
 */
 
 Route::prefix('admin')->group(function () {
+    // Auth check (always available)
+    Route::get('auth/check', [AdminAuthController::class, 'check'])->name('admin.auth.check');
+    
     // Guest routes (not logged in)
     Route::middleware('guest:admin')->group(function () {
         Route::get('login', [AdminAuthController::class, 'showLogin'])->name('admin.login');

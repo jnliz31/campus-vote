@@ -76,13 +76,14 @@ class GoogleAuthController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Welcome back, ' . $voter->name . '!',
-                'auth_token' => session()->get('PHPSESSID'),
+                'auth_token' => 'authenticated',
                 'user_role' => 'voter',
                 'user' => $voter,
             ]);
         }
 
-        return redirect()->route('voter.dashboard')
+        // Redirect back to home with success query param so frontend can detect and set localStorage
+        return redirect('/?auth=success&role=voter')
             ->with('success', 'Welcome back, ' . $voter->name . '!');
 
     } catch (Exception $e) {

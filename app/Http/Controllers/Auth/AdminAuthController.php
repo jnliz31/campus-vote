@@ -17,18 +17,22 @@ class AdminAuthController extends Controller
     {
         $credentials = $request->validate([
             'email' => 'required|email',
-            'password' => 'required',
+            'password' => 'required|string',
         ]);
 
-        if (Auth::guard('admin')->attempt($credentials)) {
+        if (Auth::guard('admin')->attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
+            $admin = Auth::guard('admin')->user();
             
             // Return JSON for API
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Login successful',
-                    'admin' => Auth::guard('admin')->user()
+                    'admin' => $admin,
+                    'redirect' => '/admin/dashboard',
+                    'auth_token' => 'authenticated',
+                    'user_role' => 'admin'
                 ]);
             }
             
@@ -46,6 +50,25 @@ class AdminAuthController extends Controller
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
         ])->onlyInput('email');
+    }
+
+    public function check(Request $request)
+    {
+        $admin = Auth::guard('admin')->user();
+        if ($admin) {
+            return response()->json([
+                'authenticated' => true,
+                'user_role' => 'admin',
+                'user' => $admin,
+                'auth_token' => 'authenticated'
+            ]);
+        }
+
+        return response()->json([
+            'authenticated' => false,
+            'user_role' => null,
+            'user' => null
+        ], 401);
     }
 
     public function logout(Request $request)
