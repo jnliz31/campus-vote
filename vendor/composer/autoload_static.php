@@ -667,17 +667,21 @@ class ComposerStaticInitc514d8f7b9fc5970bdd94287905ef584
     );
 
     public static $classMap = array (
+        'App\\Events\\ElectionEnded' => __DIR__ . '/../..' . '/app/Events/ElectionEnded.php',
         'App\\Http\\Controllers\\Admin\\AnnouncementController' => __DIR__ . '/../..' . '/app/Http/Controllers/Admin/AnnouncementController.php',
         'App\\Http\\Controllers\\Admin\\DashboardController' => __DIR__ . '/../..' . '/app/Http/Controllers/Admin/DashboardController.php',
         'App\\Http\\Controllers\\Admin\\ElectionController' => __DIR__ . '/../..' . '/app/Http/Controllers/Admin/ElectionController.php',
         'App\\Http\\Controllers\\Admin\\ResultController' => __DIR__ . '/../..' . '/app/Http/Controllers/Admin/ResultController.php',
         'App\\Http\\Controllers\\Admin\\VoterController' => __DIR__ . '/../..' . '/app/Http/Controllers/Admin/VoterController.php',
         'App\\Http\\Controllers\\Auth\\AdminAuthController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/AdminAuthController.php',
+        'App\\Http\\Controllers\\Auth\\GoogleAuthController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/GoogleAuthController.php',
         'App\\Http\\Controllers\\Auth\\VoterAuthController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/VoterAuthController.php',
         'App\\Http\\Controllers\\Auth\\VoterRegistrationController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/VoterRegistrationController.php',
         'App\\Http\\Controllers\\Controller' => __DIR__ . '/../..' . '/app/Http/Controllers/Controller.php',
+        'App\\Http\\Controllers\\Voter\\ElectionStatusController' => __DIR__ . '/../..' . '/app/Http/Controllers/Voter/ElectionStatusController.php',
         'App\\Http\\Controllers\\Voter\\VotingController' => __DIR__ . '/../..' . '/app/Http/Controllers/Voter/VotingController.php',
         'App\\Http\\Middleware\\Authenticate' => __DIR__ . '/../..' . '/app/Http/Middleware/Authenticate.php',
+        'App\\Http\\Middleware\\EnsureCampusVerified' => __DIR__ . '/../..' . '/app/Http/Middleware/EnsureCampusVerified.php',
         'App\\Http\\Middleware\\RedirectIfAuthenticated' => __DIR__ . '/../..' . '/app/Http/Middleware/RedirectIfAuthenticated.php',
         'App\\Models\\Admin' => __DIR__ . '/../..' . '/app/Models/Admin.php',
         'App\\Models\\Announcement' => __DIR__ . '/../..' . '/app/Models/Announcement.php',

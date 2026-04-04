@@ -181,7 +181,7 @@ class VotingController extends Controller
         }
 
         $voter = Auth::guard('voter')->user();
-        
+
         $votes = Vote::where('voter_id', $voter->id)
             ->with(['candidate.position', 'election'])
             ->get()
@@ -261,8 +261,43 @@ class VotingController extends Controller
         $voter = Auth::guard('voter')->user();
         $votes_count = Vote::where('voter_id', $voter->id)->count();
 
+        $voterArray = $voter instanceof \Illuminate\Database\Eloquent\Model
+            ? $voter->toArray()
+            : (array) $voter;
+
         return response()->json([
-            'voter' => array_merge($voter->toArray(), ['votes_count' => $votes_count]),
+            'voter' => array_merge($voterArray, ['votes_count' => $votes_count]),
+        ]);
+    }
+
+    /**
+     * Update voter profile.
+     */
+    public function updateProfile(Request $request)
+    {
+        if (!request()->expectsJson()) {
+            return view('index');
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . Auth::guard('voter')->id(),
+            'student_id' => 'nullable|string|max:255',
+        ]);
+
+        $voter = Auth::guard('voter')->user();
+        $voter->update($validated);
+
+        $votes_count = Vote::where('voter_id', $voter->id)->count();
+
+        $voterArray = $voter instanceof \Illuminate\Database\Eloquent\Model
+            ? $voter->toArray()
+            : (array) $voter;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Profile updated successfully',
+            'voter' => array_merge($voterArray, ['votes_count' => $votes_count]),
         ]);
     }
 }

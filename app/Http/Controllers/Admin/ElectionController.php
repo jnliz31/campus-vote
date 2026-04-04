@@ -46,6 +46,8 @@ class ElectionController extends Controller
             'title' => 'required|string|max:255',
             'positions' => 'required|array|min:1',
             'positions.*.name' => 'required|string|max:255',
+            'positions.*.candidates' => 'required|array|min:1',
+            'positions.*.candidates.*' => 'required|string|max:255',
         ]);
 
         // End any active elections
@@ -57,17 +59,27 @@ class ElectionController extends Controller
         ]);
 
         foreach ($request->positions as $index => $positionData) {
-            Position::create([
+            $position = Position::create([
                 'election_id' => $election->id,
                 'name' => $positionData['name'],
                 'order' => $index,
             ]);
+
+            // Create candidates for this position
+            foreach ($positionData['candidates'] as $candidateName) {
+                if (!empty(trim($candidateName))) {
+                    Candidate::create([
+                        'position_id' => $position->id,
+                        'name' => trim($candidateName),
+                    ]);
+                }
+            }
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Election created successfully!',
-            'election' => $election,
+            'election' => $election->load(['positions.candidates']),
         ], 201);
     }
 
@@ -107,14 +119,20 @@ class ElectionController extends Controller
             ]);
 
             foreach ($positionData['candidates'] as $candidateName) {
-                Candidate::create([
-                    'position_id' => $position->id,
-                    'name' => $candidateName,
-                ]);
+                if (!empty(trim($candidateName))) {
+                    Candidate::create([
+                        'position_id' => $position->id,
+                        'name' => trim($candidateName),
+                    ]);
+                }
             }
         }
 
-        return redirect()->route('admin.elections.index')->with('success', 'Election updated successfully!');
+        return response()->json([
+            'success' => true,
+            'message' => 'Election updated successfully!',
+            'election' => $election->fresh()->load(['positions.candidates']),
+        ]);
     }
 
     public function endElection(Election $election)
@@ -132,10 +150,35 @@ class ElectionController extends Controller
 
     public function destroy(Election $election)
     {
-        $election->delete();
-        return response()->json([
-            'success' => true,
-            'message' => 'Election deleted successfully!',
-        ]);
+        if ($election->status === 'active') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot delete an active election. Please end the election first.',
+            ], 422);
+        }
+
+        // Check if there are any votes for this election
+        $voteCount = $election->votes()->count();
+        if ($voteCount > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => "Cannot delete election with existing votes ({$voteCount} votes found). This maintains vote integrity.",
+            ], 422);
+        }
+
+        try {
+            // Delete will cascade to positions and candidates due to foreign key constraints
+            $election->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Election deleted successfully!',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete election: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

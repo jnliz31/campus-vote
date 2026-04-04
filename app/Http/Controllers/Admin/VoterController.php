@@ -22,10 +22,27 @@ class VoterController extends Controller
 
     public function destroy(Voter $voter)
     {
-        $voter->delete();
-        return response()->json([
-            'success' => true,
-            'message' => 'Voter deleted successfully!',
-        ]);
+        try {
+            // Check if voter has any votes
+            $voteCount = $voter->votes()->count();
+            if ($voteCount > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Cannot delete voter with existing votes ({$voteCount} votes found). This maintains vote integrity.",
+                ], 422);
+            }
+
+            $voter->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Voter deleted successfully!',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete voter: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

@@ -29,7 +29,7 @@ class AnnouncementController extends Controller
         $announcement = Announcement::create([
             'content' => $request->input('content')
         ]);
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Announcement created successfully!',
@@ -59,10 +59,18 @@ class AnnouncementController extends Controller
 
     public function destroy(Announcement $announcement)
     {
-        $announcement->delete();
-        return response()->json([
-            'success' => true,
-            'message' => 'Announcement deleted successfully!',
-        ]);
+        try {
+            $announcement->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Announcement deleted successfully!',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete announcement: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

@@ -6,17 +6,21 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
+    'App\\Events\\ElectionEnded' => $baseDir . '/app/Events/ElectionEnded.php',
     'App\\Http\\Controllers\\Admin\\AnnouncementController' => $baseDir . '/app/Http/Controllers/Admin/AnnouncementController.php',
     'App\\Http\\Controllers\\Admin\\DashboardController' => $baseDir . '/app/Http/Controllers/Admin/DashboardController.php',
     'App\\Http\\Controllers\\Admin\\ElectionController' => $baseDir . '/app/Http/Controllers/Admin/ElectionController.php',
     'App\\Http\\Controllers\\Admin\\ResultController' => $baseDir . '/app/Http/Controllers/Admin/ResultController.php',
     'App\\Http\\Controllers\\Admin\\VoterController' => $baseDir . '/app/Http/Controllers/Admin/VoterController.php',
     'App\\Http\\Controllers\\Auth\\AdminAuthController' => $baseDir . '/app/Http/Controllers/Auth/AdminAuthController.php',
+    'App\\Http\\Controllers\\Auth\\GoogleAuthController' => $baseDir . '/app/Http/Controllers/Auth/GoogleAuthController.php',
     'App\\Http\\Controllers\\Auth\\VoterAuthController' => $baseDir . '/app/Http/Controllers/Auth/VoterAuthController.php',
     'App\\Http\\Controllers\\Auth\\VoterRegistrationController' => $baseDir . '/app/Http/Controllers/Auth/VoterRegistrationController.php',
     'App\\Http\\Controllers\\Controller' => $baseDir . '/app/Http/Controllers/Controller.php',
+    'App\\Http\\Controllers\\Voter\\ElectionStatusController' => $baseDir . '/app/Http/Controllers/Voter/ElectionStatusController.php',
     'App\\Http\\Controllers\\Voter\\VotingController' => $baseDir . '/app/Http/Controllers/Voter/VotingController.php',
     'App\\Http\\Middleware\\Authenticate' => $baseDir . '/app/Http/Middleware/Authenticate.php',
+    'App\\Http\\Middleware\\EnsureCampusVerified' => $baseDir . '/app/Http/Middleware/EnsureCampusVerified.php',
     'App\\Http\\Middleware\\RedirectIfAuthenticated' => $baseDir . '/app/Http/Middleware/RedirectIfAuthenticated.php',
     'App\\Models\\Admin' => $baseDir . '/app/Models/Admin.php',
     'App\\Models\\Announcement' => $baseDir . '/app/Models/Announcement.php',

@@ -33,7 +33,7 @@ Route::get('/', function () {
 Route::prefix('voter')->group(function () {
     // Auth check (always available)
     Route::get('auth/check', [VoterAuthController::class, 'check'])->name('voter.auth.check');
-    
+
     // Guest routes (not logged in)
     Route::middleware('guest:voter')->group(function () {
         // Login
@@ -64,7 +64,7 @@ Route::prefix('voter')->group(function () {
 Route::prefix('admin')->group(function () {
     // Auth check (always available)
     Route::get('auth/check', [AdminAuthController::class, 'check'])->name('admin.auth.check');
-    
+
     // Guest routes (not logged in)
     Route::middleware('guest:admin')->group(function () {
         Route::get('login', [AdminAuthController::class, 'showLogin'])->name('admin.login');
@@ -90,6 +90,7 @@ Route::prefix('voter')->middleware(['auth:voter'])->group(function () {
     Route::get('votes', [VotingController::class, 'showVotes'])->name('voter.votes');
     Route::get('results', [VotingController::class, 'results'])->name('voter.results');
     Route::get('profile', [VotingController::class, 'profile'])->name('voter.profile');
+    Route::put('profile', [VotingController::class, 'updateProfile'])->name('voter.profile.update');
 
     // API routes for real-time updates
     Route::prefix('api')->group(function () {
