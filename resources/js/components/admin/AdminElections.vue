@@ -105,17 +105,34 @@ export default {
             }
         },
         async deleteElection(electionId) {
-            if (
-                !confirm(
-                    "Are you sure you want to delete this election? This cannot be undone.",
-                )
-            )
+            const election = this.elections.find((e) => e.id === electionId);
+
+            // Check if election is active
+            if (election && election.status === "active") {
+                alert(
+                    "Cannot delete an active election. Please end the election first.",
+                );
                 return;
+            }
+
+            // Build confirmation message with warning
+            let confirmMessage =
+                "Are you sure you want to delete this election?\n\n";
+            if (election && election.votes_count > 0) {
+                confirmMessage += `WARNING: This election has ${election.votes_count} vote(s).\n`;
+                confirmMessage +=
+                    "Deleting will remove all votes, candidates, and positions associated with this election.\n\n";
+            }
+            confirmMessage += "This action cannot be undone.";
+
+            if (!confirm(confirmMessage)) return;
 
             try {
                 const response = await adminAPI.deleteElection(electionId);
 
                 if (response.data.success) {
+                    // Show success message
+                    alert("Election deleted successfully!");
                     this.loadElections();
                 } else {
                     alert(
