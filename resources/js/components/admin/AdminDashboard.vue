@@ -2,8 +2,7 @@
   <div>
     <h1 class="page-title">Dashboard</h1>
 
-    <div v-if="loading" class="loading">Loading dashboard...</div>
-    <div v-else>
+    <div>
       <div class="stats-grid">
         <div class="stat-card green">
           <div class="stat-number">{{ stats.total_elections }}</div>

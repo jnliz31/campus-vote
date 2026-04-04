@@ -2,8 +2,7 @@
   <div>
     <h1 class="page-title">Your Votes</h1>
 
-    <div v-if="loading" class="loading">Loading your votes...</div>
-    <div v-else-if="votes.length > 0" class="votes-container">
+    <div v-if="votes.length > 0" class="votes-container">
       <div v-for="vote in votes" :key="vote.id" class="vote-card">
         <div class="vote-header">
           <h3 class="vote-election">{{ vote.election.title }}</h3>

@@ -16,9 +16,20 @@
 
         <div class="form-group">
           <h3>Add Positions</h3>
-          <div v-for="(pos, idx) in form.positions" :key="idx" class="position-input">
-            <input v-model="pos.name" type="text" placeholder="Position Name" required>
-            <button type="button" @click="removePosition(idx)" class="btn btn-sm btn-danger">Remove</button>
+          <div v-for="(pos, idx) in form.positions" :key="idx" class="position-container">
+            <div class="position-input">
+              <input v-model="pos.name" type="text" placeholder="Position Name" required>
+              <button type="button" @click="removePosition(idx)" class="btn btn-sm btn-danger">Remove Position</button>
+            </div>
+            
+            <div class="candidates-section">
+              <h4>Candidates for {{ pos.name || 'Position ' + (idx + 1) }}</h4>
+              <div v-for="(candidate, cIdx) in pos.candidates" :key="cIdx" class="candidate-input">
+                <input v-model="candidate.name" type="text" placeholder="Candidate Name" required>
+                <button type="button" @click="removeCandidate(idx, cIdx)" class="btn btn-sm btn-danger">Remove</button>
+              </div>
+              <button type="button" @click="addCandidate(idx)" class="btn btn-sm btn-secondary">Add Candidate</button>
+            </div>
           </div>
           <button type="button" @click="addPosition" class="btn btn-sm btn-secondary">Add Position</button>
         </div>
@@ -44,22 +55,49 @@ export default {
       form: {
         title: '',
         description: '',
-        positions: [{ name: '' }],
+        positions: [{ 
+          name: '',
+          candidates: [{ name: '' }]
+        }],
       },
       loading: false,
     };
   },
   methods: {
     addPosition() {
-      this.form.positions.push({ name: '' });
+      this.form.positions.push({ 
+        name: '',
+        candidates: [{ name: '' }]
+      });
     },
     removePosition(idx) {
       this.form.positions.splice(idx, 1);
+    },
+    addCandidate(positionIdx) {
+      this.form.positions[positionIdx].candidates.push({ name: '' });
+    },
+    removeCandidate(positionIdx, candidateIdx) {
+      this.form.positions[positionIdx].candidates.splice(candidateIdx, 1);
     },
     async createElection() {
       if (!this.form.title) {
         alert('Please enter election title');
         return;
+      }
+
+      // Validate that each position has at least one candidate with a name
+      for (let i = 0; i < this.form.positions.length; i++) {
+        const position = this.form.positions[i];
+        if (!position.name) {
+          alert(`Please enter a name for position ${i + 1}`);
+          return;
+        }
+        
+        const validCandidates = position.candidates.filter(c => c.name.trim());
+        if (validCandidates.length === 0) {
+          alert(`Please add at least one candidate for position: ${position.name}`);
+          return;
+        }
       }
 
       this.loading = true;
@@ -68,14 +106,18 @@ export default {
         const formData = {
           title: this.form.title,
           description: this.form.description,
-          positions: this.form.positions.map(p => ({ name: p.name })).filter(p => p.name),
+          positions: this.form.positions.map(p => ({
+            name: p.name,
+            candidates: p.candidates.filter(c => c.name.trim()).map(c => c.name.trim())
+          })).filter(p => p.name),
         };
 
         const response = await adminAPI.createElection(formData);
         
         this.$router.push('/admin/elections');
       } catch (error) {
-        alert('Failed to create election');
+        console.error('Error creating election:', error);
+        alert('Failed to create election: ' + (error.response?.data?.message || error.message));
       } finally {
         this.loading = false;
       }
@@ -97,7 +139,8 @@ export default {
   padding: 30px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  max-width: 600px;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .form-group {
@@ -127,13 +170,42 @@ export default {
   box-shadow: 0 0 0 3px rgba(17, 107, 39, 0.1);
 }
 
+.position-container {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  background-color: #f9f9f9;
+}
+
 .position-input {
   display: flex;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
 }
 
 .position-input input {
+  flex: 1;
+}
+
+.candidates-section {
+  margin-left: 20px;
+}
+
+.candidates-section h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #555;
+}
+
+.candidate-input {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.candidate-input input {
   flex: 1;
 }
 
