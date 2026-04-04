@@ -108,16 +108,18 @@ class VotingController extends Controller
             ], 403);
         }
 
-        // Validate votes
+        // Validate votes structure - votes should be arrays of candidate IDs
         $request->validate([
             'votes' => 'required|array',
-            'votes.*' => 'required|exists:candidates,id',
+            'votes.*' => 'required|array',
+            'votes.*.*' => 'required|exists:candidates,id',
         ]);
 
-        // Validate that one vote per position
+        // Validate that all positions are present and have votes within max limits
         $positionIds = $election->positions->pluck('id')->toArray();
+        $requestPositionIds = array_keys($request->votes);
 
-        if (count($request->votes) !== count($positionIds)) {
+        if (count($requestPositionIds) !== count($positionIds)) {
             return response()->json([
                 'error' => 'You must vote for all positions'
             ], 422);
@@ -125,24 +127,49 @@ class VotingController extends Controller
 
         DB::beginTransaction();
         try {
-            foreach ($request->votes as $positionId => $candidateId) {
-                // Verify candidate belongs to the position
-                $candidate = Candidate::where('id', $candidateId)
-                    ->where('position_id', $positionId)
-                    ->first();
+            foreach ($request->votes as $positionId => $candidateIds) {
+                // Get the position to check max_votes
+                $position = $election->positions->firstWhere('id', $positionId);
 
-                if (!$candidate) {
-                    throw new \Exception('Invalid candidate for position.');
+                if (!$position) {
+                    throw new \Exception('Invalid position.');
                 }
 
-                // Create vote with tracking
-                Vote::create([
-                    'voter_id' => $voter->id,
-                    'candidate_id' => $candidateId,
-                    'election_id' => $election->id,
-                    'ip_address' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                ]);
+                // Ensure candidateIds is an array
+                if (!is_array($candidateIds)) {
+                    $candidateIds = [$candidateIds];
+                }
+
+                // Validate number of votes doesn't exceed max_votes
+                if (count($candidateIds) > $position->max_votes) {
+                    throw new \Exception('Too many votes for position: ' . $position->name);
+                }
+
+                // Validate exactly max_votes per position
+                if (count($candidateIds) !== $position->max_votes) {
+                    throw new \Exception('You must select exactly ' . $position->max_votes . ' candidate(s) for ' . $position->name . '. You selected ' . count($candidateIds) . '.');
+                }
+
+                // Create votes for each selected candidate
+                foreach ($candidateIds as $candidateId) {
+                    // Verify candidate belongs to the position
+                    $candidate = Candidate::where('id', $candidateId)
+                        ->where('position_id', $positionId)
+                        ->first();
+
+                    if (!$candidate) {
+                        throw new \Exception('Invalid candidate for position: ' . $position->name);
+                    }
+
+                    // Create vote with tracking
+                    Vote::create([
+                        'voter_id' => $voter->id,
+                        'candidate_id' => $candidateId,
+                        'election_id' => $election->id,
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                    ]);
+                }
             }
 
             DB::commit();
@@ -166,8 +193,8 @@ class VotingController extends Controller
             ]);
 
             return response()->json([
-                'error' => 'An error occurred while submitting your vote'
-            ], 500);
+                'error' => $e->getMessage() ?: 'An error occurred while submitting your vote'
+            ], 422);
         }
     }
 
@@ -193,10 +220,13 @@ class VotingController extends Controller
                 return [
                     'id' => $election?->id,
                     'election' => $election,
-                    'positions' => $electionVotes->groupBy('candidate.position.name')->map(function ($positionVotes) {
+                    'positions' => $electionVotes->groupBy('candidate.position.id')->map(function ($positionVotes) {
                         return [
+                            'id' => $positionVotes->first()?->candidate->position->id,
                             'name' => $positionVotes->first()?->candidate->position->name,
-                            'selected_candidate' => $positionVotes->first()?->candidate->name,
+                            'selected_candidates' => $positionVotes->map(function ($vote) {
+                                return $vote->candidate->name;
+                            })->values()->toArray(),
                         ];
                     })->values(),
                     'created_at' => $electionVotes->first()?->created_at,

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Position extends Model
 {
-    protected $fillable = ['election_id', 'name', 'order'];
+    protected $fillable = ['election_id', 'name', 'order', 'max_votes'];
 
     public function election(): BelongsTo
     {

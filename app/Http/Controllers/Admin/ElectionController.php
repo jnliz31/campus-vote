@@ -46,6 +46,7 @@ class ElectionController extends Controller
             'title' => 'required|string|max:255',
             'positions' => 'required|array|min:1',
             'positions.*.name' => 'required|string|max:255',
+            'positions.*.max_votes' => 'required|integer|min:1',
             'positions.*.candidates' => 'required|array|min:1',
             'positions.*.candidates.*' => 'required|string|max:255',
         ]);
@@ -62,6 +63,7 @@ class ElectionController extends Controller
             $position = Position::create([
                 'election_id' => $election->id,
                 'name' => $positionData['name'],
+                'max_votes' => $positionData['max_votes'],
                 'order' => $index,
             ]);
 
@@ -102,6 +104,7 @@ class ElectionController extends Controller
             'title' => 'required|string|max:255',
             'positions' => 'required|array|min:1',
             'positions.*.name' => 'required|string|max:255',
+            'positions.*.max_votes' => 'required|integer|min:1',
             'positions.*.candidates' => 'required|array|min:1',
             'positions.*.candidates.*' => 'required|string|max:255',
         ]);
@@ -115,6 +118,7 @@ class ElectionController extends Controller
             $position = Position::create([
                 'election_id' => $election->id,
                 'name' => $positionData['name'],
+                'max_votes' => $positionData['max_votes'],
                 'order' => $index,
             ]);
 
@@ -150,29 +154,22 @@ class ElectionController extends Controller
 
     public function destroy(Election $election)
     {
+        // Prevent deletion of active elections
         if ($election->status === 'active') {
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot delete an active election. Please end the election first.',
-            ], 422);
-        }
-
-        // Check if there are any votes for this election
-        $voteCount = $election->votes()->count();
-        if ($voteCount > 0) {
-            return response()->json([
-                'success' => false,
-                'message' => "Cannot delete election with existing votes ({$voteCount} votes found). This maintains vote integrity.",
+                'message' => 'Cannot delete an active election. Please end the election first before deleting.',
             ], 422);
         }
 
         try {
-            // Delete will cascade to positions and candidates due to foreign key constraints
+            // Delete the election - cascade delete will handle positions, candidates, and votes
+            // The database foreign keys are configured with onDelete('cascade')
             $election->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Election deleted successfully!',
+                'message' => 'Election deleted successfully! All associated data (positions, candidates, and votes) have been removed.',
             ]);
         } catch (\Exception $e) {
             return response()->json([
