@@ -8,6 +8,18 @@ use Illuminate\Support\Facades\Auth;
 
 class VoterAuthController extends Controller
 {
+    public function check(Request $request)
+    {
+        $isAuthenticated = Auth::guard('voter')->check();
+
+        return response()->json([
+            'authenticated' => $isAuthenticated,
+            'auth_token' => $isAuthenticated ? 'authenticated' : null,
+            'user_role' => $isAuthenticated ? 'voter' : null,
+            'voter' => $isAuthenticated ? Auth::guard('voter')->user() : null,
+        ]);
+    }
+
     public function showLogin()
     {
         return view('index');
@@ -17,22 +29,18 @@ class VoterAuthController extends Controller
     {
         $credentials = $request->validate([
             'email' => 'required|email',
-            'password' => 'required|string',
+            'password' => 'required',
         ]);
 
-        if (Auth::guard('voter')->attempt($credentials, $request->boolean('remember'))) {
+        if (Auth::guard('voter')->attempt($credentials)) {
             $request->session()->regenerate();
-            $voter = Auth::guard('voter')->user();
             
             // Return JSON for API
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Login successful',
-                    'voter' => $voter,
-                    'redirect' => '/voter/dashboard',
-                    'auth_token' => 'authenticated',
-                    'user_role' => 'voter'
+                    'voter' => Auth::guard('voter')->user()
                 ]);
             }
             
@@ -50,35 +58,6 @@ class VoterAuthController extends Controller
         return back()->withErrors([
             'email' => 'The provided credentials do not match our records.',
         ])->onlyInput('email');
-    }
-
-    public function check(Request $request)
-    {
-        $voter = Auth::guard('voter')->user();
-        if ($voter) {
-            return response()->json([
-                'authenticated' => true,
-                'user_role' => 'voter',
-                'user' => $voter,
-                'auth_token' => 'authenticated'
-            ]);
-        }
-
-        $admin = Auth::guard('admin')->user();
-        if ($admin) {
-            return response()->json([
-                'authenticated' => true,
-                'user_role' => 'admin',
-                'user' => $admin,
-                'auth_token' => 'authenticated'
-            ]);
-        }
-
-        return response()->json([
-            'authenticated' => false,
-            'user_role' => null,
-            'user' => null
-        ], 401);
     }
 
     public function logout(Request $request)

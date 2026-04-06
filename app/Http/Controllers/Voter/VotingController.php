@@ -311,7 +311,8 @@ class VotingController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,' . Auth::guard('voter')->id(),
+            // Voters table uses `email` as unique. Ignore current authenticated voter.
+            'email' => 'required|email|max:255|unique:voters,email,' . Auth::guard('voter')->id(),
             'student_id' => 'nullable|string|max:255',
         ]);
 
