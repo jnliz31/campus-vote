@@ -13,28 +13,38 @@ const api = axios.create({
 
 // Add CSRF token to all requests
 api.interceptors.request.use((config) => {
-    // Try multiple methods to get CSRF token
-    let token = document.querySelector('meta[name="csrf-token"]')?.content;
-
-    // Fallback to other common meta tags
-    if (!token) {
-        token = document.querySelector('meta[name="_token"]')?.content;
+    // Method 1: Get from meta tag (most reliable)
+    let token = null;
+    const csrfMetaTag = document.querySelector('meta[name="csrf-token"]');
+    if (csrfMetaTag && csrfMetaTag.content) {
+        token = csrfMetaTag.content;
     }
 
-    // Fallback to cookie
+    // Method 2: Fallback to other meta tags
+    if (!token) {
+        const tokenMetaTag = document.querySelector('meta[name="_token"]');
+        if (tokenMetaTag && tokenMetaTag.content) {
+            token = tokenMetaTag.content;
+        }
+    }
+
+    // Method 3: Fallback to XSRF-TOKEN cookie (Laravel default)
     if (!token) {
         const cookies = document.cookie.split(";");
         for (let cookie of cookies) {
             const [name, value] = cookie.trim().split("=");
-            if (name === "XSRF-TOKEN" || name === "csrf-token") {
+            if (name === "XSRF-TOKEN") {
                 token = decodeURIComponent(value);
                 break;
             }
         }
     }
 
+    // Add token to headers - Laravel expects this header
     if (token) {
         config.headers["X-CSRF-TOKEN"] = token;
+    } else {
+        console.warn("CSRF token not found in document");
     }
 
     return config;
@@ -44,15 +54,25 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        // Handle CSRF token mismatch specifically
-        if (
-            error.response?.status === 419 &&
-            error.response?.data?.message?.includes("CSRF")
-        ) {
-            console.error("CSRF token mismatch. Refreshing the page...");
-            // Refresh the page to get a new CSRF token
-            window.location.reload();
-            return Promise.reject(error);
+        // Handle CSRF token mismatch (419 status)
+        if (error.response?.status === 419) {
+            console.error("CSRF token validation failed. Refreshing page...");
+            // Show notification before reload
+            const message =
+                error.response?.data?.message ||
+                "Your session has expired. Please try again.";
+            console.error("Error:", message);
+
+            // Reload page after a brief delay to ensure user sees the message
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+
+            return Promise.reject({
+                ...error,
+                isCsrfError: true,
+                message: "Security token expired. Refreshing page...",
+            });
         }
 
         if (error.response?.status === 401) {
@@ -67,6 +87,7 @@ api.interceptors.response.use(
                 window.location.href = "/";
             }
         }
+
         return Promise.reject(error);
     },
 );
