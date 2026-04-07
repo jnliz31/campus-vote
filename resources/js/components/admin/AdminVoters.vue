@@ -37,9 +37,16 @@
 
 <script>
 import { adminAPI } from "../../services/api.js";
+import { useNotification } from "../../composables/useNotification.js";
+import { useConfirmDialog } from "../../composables/useConfirmDialog.js";
 
 export default {
     name: "AdminVoters",
+    setup() {
+        const { error: showError, success: showSuccess } = useNotification();
+        const { confirmDangerous: showConfirmDangerous } = useConfirmDialog();
+        return { showError, showSuccess, showConfirmDangerous };
+    },
     data() {
         return {
             voters: [],
@@ -64,20 +71,24 @@ export default {
             return new Date(date).toLocaleDateString();
         },
         async deleteVoter(voterId) {
-            if (
-                !confirm(
-                    "Are you sure you want to delete this voter? This cannot be undone.",
-                )
-            )
-                return;
+            const confirmed = await this.showConfirmDangerous(
+                "Are you sure you want to delete this voter? This action cannot be undone.",
+                {
+                    title: "Delete Voter",
+                    confirmText: "Delete",
+                },
+            );
+
+            if (!confirmed) return;
 
             try {
                 const response = await adminAPI.deleteVoter(voterId);
 
                 if (response.data.success) {
+                    this.showSuccess("Voter deleted successfully!");
                     this.loadVoters();
                 } else {
-                    alert(
+                    this.showError(
                         "Failed to delete voter: " +
                             (response.data.message || "Unknown error"),
                     );
@@ -88,7 +99,7 @@ export default {
                     error.response?.data?.message ||
                     error.message ||
                     "Failed to delete voter";
-                alert(errorMessage);
+                this.showError(errorMessage);
             }
         },
     },

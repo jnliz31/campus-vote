@@ -63,9 +63,16 @@
 
 <script>
 import { adminAPI } from "../../services/api.js";
+import { useNotification } from "../../composables/useNotification.js";
+import { useConfirmDialog } from "../../composables/useConfirmDialog.js";
 
 export default {
     name: "AdminAnnouncements",
+    setup() {
+        const { error: showError, success: showSuccess } = useNotification();
+        const { confirmDangerous: showConfirmDangerous } = useConfirmDialog();
+        return { showError, showSuccess, showConfirmDangerous };
+    },
     data() {
         return {
             announcements: [],
@@ -91,7 +98,7 @@ export default {
         },
         async saveAnnouncement() {
             if (!this.form.content.trim()) {
-                alert("Please enter announcement content");
+                this.showError("Please enter announcement content");
                 return;
             }
 
@@ -103,29 +110,34 @@ export default {
                 });
                 this.form.content = "";
                 this.showForm = false;
+                this.showSuccess("Announcement posted successfully!");
                 this.loadAnnouncements();
             } catch (error) {
-                alert("Failed to post announcement");
+                this.showError("Failed to post announcement");
             } finally {
                 this.loading = false;
             }
         },
         async deleteAnnouncement(announcementId) {
-            if (
-                !confirm(
-                    "Are you sure you want to delete this announcement? This cannot be undone.",
-                )
-            )
-                return;
+            const confirmed = await this.showConfirmDangerous(
+                "Are you sure you want to delete this announcement? This action cannot be undone.",
+                {
+                    title: "Delete Announcement",
+                    confirmText: "Delete",
+                },
+            );
+
+            if (!confirmed) return;
 
             try {
                 const response =
                     await adminAPI.deleteAnnouncement(announcementId);
 
                 if (response.data.success) {
+                    this.showSuccess("Announcement deleted successfully!");
                     this.loadAnnouncements();
                 } else {
-                    alert(
+                    this.showError(
                         "Failed to delete announcement: " +
                             (response.data.message || "Unknown error"),
                     );
@@ -136,7 +148,7 @@ export default {
                     error.response?.data?.message ||
                     error.message ||
                     "Failed to delete announcement";
-                alert(errorMessage);
+                this.showError(errorMessage);
             }
         },
         formatDate(date) {

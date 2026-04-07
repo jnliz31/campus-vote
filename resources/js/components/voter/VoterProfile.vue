@@ -115,9 +115,14 @@
 
 <script>
 import { voterAPI } from "../../services/api.js";
+import { useNotification } from "../../composables/useNotification.js";
 
 export default {
     name: "VoterProfile",
+    setup() {
+        const { info: showInfo } = useNotification();
+        return { showInfo };
+    },
     data() {
         return {
             voter: {
@@ -216,7 +221,7 @@ export default {
             }
         },
         changePassword() {
-            alert("Password change feature coming soon");
+            this.showInfo("Password change feature coming soon");
         },
     },
 };

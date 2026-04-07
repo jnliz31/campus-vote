@@ -1,112 +1,197 @@
 <template>
-    <div>
-        <div class="election-header">
-            <h1 class="election-title">Ongoing Election</h1>
-            <a href="#" class="election-link">{{ election.title }}</a>
-            <p class="election-instruction">
-                (Select candidates for each position according to the max votes
-                allowed)
-            </p>
+    <div class="vote-page">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-content">
+                <h1 class="page-title">Cast Your Vote</h1>
+                <p class="header-subtitle">
+                    Select your preferred candidates for each position
+                </p>
+            </div>
         </div>
 
-        <form @submit.prevent="submitVote" id="voteForm">
-            <div class="positions-grid">
-                <div
-                    v-for="position in election.positions"
-                    :key="position.id"
-                    class="position-card"
-                >
-                    <h2 class="position-title">{{ position.name }}</h2>
-                    <p class="max-votes-info">
-                        Max votes allowed: {{ position.max_votes }}
-                    </p>
-                    <p
-                        :class="{
-                            'selected-count': true,
-                            'vote-count-valid':
-                                votes[position.id] &&
-                                votes[position.id].length ===
-                                    position.max_votes,
-                            'vote-count-invalid':
-                                votes[position.id] &&
-                                votes[position.id].length !==
-                                    position.max_votes,
-                        }"
-                    >
-                        Selected: {{ votes[position.id]?.length || 0 }} /
-                        {{ position.max_votes }}
-                    </p>
-                    <p
-                        v-if="validationErrors[position.id]"
-                        class="position-error"
-                    >
-                        ⚠️ {{ validationErrors[position.id] }}
-                    </p>
+        <!-- Loading State -->
+        <div v-if="loading" class="loading-container">
+            <div class="spinner"></div>
+            <p>Loading election...</p>
+        </div>
 
-                    <label
-                        v-for="candidate in position.candidates"
-                        :key="candidate.id"
-                        class="candidate-item"
-                    >
-                        <div class="candidate-avatar">
-                            <svg viewBox="0 0 24 24">
-                                <path
-                                    fill="white"
-                                    d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-                                />
-                            </svg>
-                        </div>
-                        <span class="candidate-name">{{ candidate.name }}</span>
-                        <input
-                            :checked="
-                                votes[position.id] &&
-                                votes[position.id].includes(candidate.id)
-                            "
-                            @change="
-                                toggleVote(
-                                    position.id,
-                                    candidate.id,
-                                    position.max_votes,
-                                )
-                            "
-                            type="checkbox"
-                            class="candidate-checkbox"
-                        />
-                    </label>
+        <!-- Already Voted State -->
+        <div v-else-if="alreadyVoted" class="voted-state">
+            <div class="voted-icon">✓</div>
+            <h2>You Have Already Voted</h2>
+            <p>
+                Thank you for participating! You can view your votes and
+                election results on the next page.
+            </p>
+            <p class="redirect-message">Redirecting you...</p>
+        </div>
+
+        <!-- Error State -->
+        <div v-else-if="error && !election.title" class="error-state">
+            <div class="error-icon">⚠️</div>
+            <h2>{{ error }}</h2>
+            <p>Redirecting you back to the dashboard...</p>
+        </div>
+
+        <!-- Valid Election State -->
+        <template v-else>
+            <!-- Election Details Card -->
+            <div class="election-details-card">
+                <div class="election-info">
+                    <h2 class="election-title">{{ election.title }}</h2>
+                    <p class="election-instruction">
+                        Select candidates for each position according to the max
+                        votes allowed
+                    </p>
                 </div>
             </div>
 
-            <div style="text-align: center; margin-top: 30px">
-                <button
-                    type="submit"
-                    class="btn btn-success"
-                    style="padding: 15px 40px; font-size: 16px"
-                    :disabled="loading || !isFormValid || hasExceededVotes"
-                >
-                    {{
-                        loading
-                            ? "Submitting..."
-                            : hasExceededVotes
-                              ? "Please adjust selections - you've selected too many votes"
-                              : !isFormValid
-                                ? "Select exactly the required votes for all positions"
-                                : "Submit Vote"
-                    }}
-                </button>
-            </div>
-        </form>
+            <!-- Form -->
+            <form @submit.prevent="submitVote" id="voteForm">
+                <div class="positions-grid">
+                    <div
+                        v-for="position in election.positions"
+                        :key="position.id"
+                        class="position-card"
+                    >
+                        <!-- Position Header -->
+                        <div class="position-header">
+                            <div class="position-info">
+                                <h3 class="position-title">
+                                    {{ position.name }}
+                                </h3>
+                                <p class="max-votes-info">
+                                    🗳️ Max {{ position.max_votes }} vote{{
+                                        position.max_votes !== 1 ? "s" : ""
+                                    }}
+                                </p>
+                            </div>
+                            <div
+                                class="vote-counter"
+                                :class="{
+                                    'counter-valid':
+                                        votes[position.id] &&
+                                        votes[position.id].length ===
+                                            position.max_votes,
+                                    'counter-invalid':
+                                        votes[position.id] &&
+                                        votes[position.id].length !==
+                                            position.max_votes &&
+                                        votes[position.id].length > 0,
+                                }"
+                            >
+                                {{ votes[position.id]?.length || 0 }}/{{
+                                    position.max_votes
+                                }}
+                            </div>
+                        </div>
 
-        <div v-if="error" class="alert alert-error">
-            {{ error }}
-        </div>
+                        <!-- Error Message -->
+                        <p
+                            v-if="validationErrors[position.id]"
+                            class="position-error"
+                        >
+                            ⚠️ {{ validationErrors[position.id] }}
+                        </p>
+
+                        <!-- Candidates List -->
+                        <div class="candidates-list">
+                            <label
+                                v-for="candidate in position.candidates"
+                                :key="candidate.id"
+                                class="candidate-item"
+                                :class="{
+                                    'candidate-checked':
+                                        votes[position.id] &&
+                                        votes[position.id].includes(
+                                            candidate.id,
+                                        ),
+                                }"
+                            >
+                                <div class="candidate-checkbox-wrapper">
+                                    <input
+                                        :checked="
+                                            votes[position.id] &&
+                                            votes[position.id].includes(
+                                                candidate.id,
+                                            )
+                                        "
+                                        @change="
+                                            toggleVote(
+                                                position.id,
+                                                candidate.id,
+                                                position.max_votes,
+                                            )
+                                        "
+                                        type="checkbox"
+                                        class="candidate-checkbox"
+                                    />
+                                    <span class="checkbox-custom"></span>
+                                </div>
+                                <div class="candidate-avatar">
+                                    <svg viewBox="0 0 24 24">
+                                        <path
+                                            fill="white"
+                                            d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+                                        />
+                                    </svg>
+                                </div>
+                                <span class="candidate-name">{{
+                                    candidate.name
+                                }}</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Section -->
+                <div class="submit-section">
+                    <button
+                        type="submit"
+                        class="btn-submit"
+                        :disabled="loading || !isFormValid || hasExceededVotes"
+                    >
+                        <span v-if="loading" class="btn-spinner"></span>
+                        <span class="btn-text">
+                            {{
+                                loading
+                                    ? "Submitting your vote..."
+                                    : hasExceededVotes
+                                      ? "Please deselect one or more votes"
+                                      : !isFormValid
+                                        ? "Select exactly the required votes"
+                                        : "Submit Vote"
+                            }}
+                        </span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- Error Alert -->
+            <div v-if="error" class="alert alert-error">
+                <span class="alert-icon">⚠️</span>
+                <div class="alert-content">
+                    <p class="alert-title">Error</p>
+                    <p class="alert-message">{{ error }}</p>
+                </div>
+            </div>
+        </template>
     </div>
 </template>
 
 <script>
 import { voterAPI } from "../../services/api.js";
+import { useNotification } from "../../composables/useNotification.js";
+import { useConfirmDialog } from "../../composables/useConfirmDialog.js";
 
 export default {
     name: "VoterVote",
+    setup() {
+        const { error: showError } = useNotification();
+        const { confirmDangerous: showConfirmDangerous } = useConfirmDialog();
+        return { showError, showConfirmDangerous };
+    },
     data() {
         return {
             election: {
@@ -114,8 +199,9 @@ export default {
                 positions: [],
             },
             votes: {},
-            loading: false,
+            loading: true,
             error: "",
+            alreadyVoted: false,
             validationErrors: {},
         };
     },
@@ -144,12 +230,29 @@ export default {
     },
     methods: {
         async loadVotePage() {
+            this.loading = true;
+            this.error = "";
+            this.alreadyVoted = false;
             try {
                 const response = await voterAPI.getVote();
                 const data = response.data;
 
+                // Check if user has already voted FIRST (before checking election)
+                if (data.has_voted) {
+                    this.loading = false;
+                    this.alreadyVoted = true;
+                    setTimeout(() => this.$router.push("/voter/votes"), 2500);
+                    return;
+                }
+
+                // Then check if there's an active election
                 if (!data.election) {
-                    this.$router.push("/voter/dashboard");
+                    this.loading = false;
+                    this.error = "No active election at the moment";
+                    setTimeout(
+                        () => this.$router.push("/voter/dashboard"),
+                        2000,
+                    );
                     return;
                 }
 
@@ -160,13 +263,46 @@ export default {
                     this.votes[position.id] = [];
                 });
 
-                if (data.has_voted) {
-                    this.$router.push("/voter/votes");
-                    return;
-                }
+                this.loading = false;
             } catch (error) {
                 console.error("Error loading vote page:", error);
-                this.error = "No active election at the moment";
+                this.loading = false;
+
+                // Handle different error types based on response status
+                if (error.response) {
+                    const status = error.response.status;
+                    const errorData = error.response.data;
+
+                    // 403: User has already voted
+                    if (status === 403 && errorData.has_voted) {
+                        this.alreadyVoted = true;
+                        setTimeout(
+                            () => this.$router.push("/voter/votes"),
+                            2500,
+                        );
+                        return;
+                    }
+
+                    // 404: No active election
+                    if (status === 404) {
+                        this.error =
+                            errorData.error ||
+                            "No active election at the moment";
+                        setTimeout(
+                            () => this.$router.push("/voter/dashboard"),
+                            2000,
+                        );
+                        return;
+                    }
+
+                    // Other errors
+                    this.error =
+                        errorData.error ||
+                        "An error occurred while loading the election";
+                } else {
+                    this.error = "No active election at the moment";
+                }
+
                 setTimeout(() => this.$router.push("/voter/dashboard"), 2000);
             }
         },
@@ -220,11 +356,15 @@ export default {
                 return;
             }
 
-            if (
-                !confirm(
-                    "Are you sure you want to submit your vote? This action cannot be undone.",
-                )
-            ) {
+            const confirmed = await this.showConfirmDangerous(
+                "Are you sure you want to submit your vote? This action cannot be undone.",
+                {
+                    title: "Submit Vote",
+                    confirmText: "Submit Vote",
+                },
+            );
+
+            if (!confirmed) {
                 return;
             }
 
@@ -255,184 +395,593 @@ export default {
 </script>
 
 <style scoped>
-.election-header {
-    margin-bottom: 40px;
+.vote-page {
+    padding: 0;
+}
+
+/* Page Header */
+.page-header {
+    background: linear-gradient(135deg, #116b27 0%, #22863a 100%);
+    padding: 40px;
+    border-radius: 0;
+    margin-bottom: 30px;
+    color: white;
+    box-shadow: 0 4px 12px rgba(17, 107, 39, 0.15);
+}
+
+.header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.page-title {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    color: white;
+    letter-spacing: -0.5px;
+}
+
+.header-subtitle {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+    font-weight: 400;
+}
+
+/* Loading State */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 40px;
+    background: white;
+    border-radius: 8px;
+    margin: 30px 20px;
+    min-height: 400px;
+}
+
+.spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid #e0e0e0;
+    border-top: 4px solid #116b27;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-container p {
+    color: #666;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* Error State */
+.error-state {
+    text-align: center;
+    padding: 80px 40px;
+    background: white;
+    border-radius: 8px;
+    margin: 30px 20px;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #ffebee;
+}
+
+.error-icon {
+    font-size: 80px;
+    margin-bottom: 20px;
+    animation: warning-pulse 2s ease-in-out infinite;
+}
+
+@keyframes warning-pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.error-state h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #d32f2f;
+    margin: 0 0 12px 0;
+}
+
+.error-state p {
+    font-size: 15px;
+    color: #666;
+    margin: 0;
+}
+
+.redirect-message {
+    font-size: 14px;
+    color: #888;
+    margin-top: 16px;
+    font-style: italic;
+}
+
+/* Voted State */
+.voted-state {
+    text-align: center;
+    padding: 80px 40px;
+    background: white;
+    border-radius: 8px;
+    margin: 30px 20px;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e8f5e9;
+}
+
+.voted-icon {
+    font-size: 80px;
+    color: #116b27;
+    margin-bottom: 20px;
+    animation: success-bounce 0.6s ease-in-out;
+}
+
+@keyframes success-bounce {
+    0% {
+        transform: scale(0);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.voted-state h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #116b27;
+    margin: 0 0 12px 0;
+}
+
+.voted-state p {
+    font-size: 15px;
+    color: #666;
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* Election Details Card */
+.election-details-card {
+    background: white;
+    padding: 24px;
+    border-radius: 8px;
+    border-left: 4px solid #116b27;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    margin-bottom: 30px;
+}
+
+.election-info {
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .election-title {
-    font-size: 32px;
+    font-size: 24px;
     font-weight: 600;
-    margin-bottom: 10px;
-    color: #333;
-}
-
-.election-link {
-    display: block;
-    font-size: 20px;
-    color: #0366d6;
-    text-decoration: none;
-    margin-bottom: 10px;
-}
-
-.election-link:hover {
-    text-decoration: underline;
+    margin: 0 0 8px 0;
+    color: #116b27;
 }
 
 .election-instruction {
     font-size: 14px;
     color: #666;
     margin: 0;
+    line-height: 1.5;
+}
+
+/* Form */
+form {
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .positions-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 24px;
+    margin-bottom: 40px;
 }
 
+/* Position Card */
 .position-card {
     background: white;
-    padding: 30px;
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-top: 3px solid #116b27;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.position-card:hover {
+    box-shadow: 0 4px 16px rgba(17, 107, 39, 0.12);
+    transform: translateY(-2px);
+}
+
+.position-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    gap: 16px;
+}
+
+.position-info {
+    flex: 1;
 }
 
 .position-title {
-    font-size: 22px;
-    font-weight: 600;
-    margin-bottom: 20px;
-    color: #333;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0 0 8px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .max-votes-info {
     font-size: 13px;
     color: #666;
-    margin: 0 0 8px 0;
-    padding: 8px;
-    background-color: #f0f5f8;
-    border-left: 3px solid #0366d6;
-    border-radius: 3px;
+    margin: 0;
+    font-weight: 500;
 }
 
-.selected-count {
-    font-size: 13px;
-    margin: 0 0 15px 0;
-    font-weight: 600;
-    padding: 8px;
-    border-radius: 3px;
+.vote-counter {
+    background: #f5f5f5;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #888;
+    border: 2px solid #e0e0e0;
+    text-align: center;
+    min-width: 60px;
+    transition: all 0.2s;
 }
 
-.vote-count-valid {
-    color: #22863a;
-    background-color: #d4edda;
-    border-left: 3px solid #22863a;
+.counter-valid {
+    background: #e8f5e9;
+    color: #116b27;
+    border-color: #116b27;
 }
 
-.vote-count-invalid {
+.counter-invalid {
+    background: #fff3cd;
     color: #856404;
-    background-color: #fff3cd;
-    border-left: 3px solid #ffc107;
+    border-color: #ffc107;
 }
 
+/* Error Message */
 .position-error {
     font-size: 13px;
     color: #d32f2f;
-    margin: -10px 0 15px 0;
-    font-weight: 600;
-    padding: 8px;
-    background-color: #ffebee;
+    background: #ffebee;
+    padding: 10px 12px;
+    border-radius: 4px;
+    margin: 0 0 16px 0;
     border-left: 3px solid #d32f2f;
-    border-radius: 3px;
+}
+
+/* Candidates List */
+.candidates-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .candidate-item {
     display: flex;
     align-items: center;
-    padding: 15px;
-    margin-bottom: 12px;
-    border: 1px solid #ddd;
+    padding: 14px 16px;
+    border: 1px solid #e0e0e0;
     border-radius: 6px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background: white;
+    gap: 12px;
 }
 
 .candidate-item:hover {
-    background-color: #f8f9fa;
+    background: #f5f5f5;
+    border-color: #116b27;
+    box-shadow: 0 2px 6px rgba(17, 107, 39, 0.08);
+}
+
+.candidate-checked {
+    background: #f0f9f5;
     border-color: #116b27;
 }
 
-.candidate-item input:checked ~ .candidate-name {
+.candidate-checked .candidate-name {
     color: #116b27;
     font-weight: 600;
 }
 
+.candidate-checkbox-wrapper {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.candidate-checkbox {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+}
+
+.checkbox-custom {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    background: white;
+}
+
+.candidate-checkbox:checked ~ .checkbox-custom {
+    background: #116b27;
+    border-color: #116b27;
+}
+
+.candidate-checkbox:checked ~ .checkbox-custom::after {
+    content: "✓";
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    display: block;
+}
+
 .candidate-avatar {
-    width: 40px;
-    height: 40px;
-    background-color: #116b27;
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #116b27 0%, #22863a 100%);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-right: 15px;
     flex-shrink: 0;
 }
 
 .candidate-avatar svg {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
 }
 
 .candidate-name {
     flex: 1;
-    font-size: 16px;
+    font-size: 15px;
     color: #333;
+    font-weight: 500;
+    transition: color 0.2s;
 }
 
-.candidate-checkbox {
-    margin-left: auto;
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
+/* Submit Section */
+.submit-section {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+    gap: 16px;
 }
 
-.btn {
-    padding: 10px 20px;
+.btn-submit {
+    background: linear-gradient(135deg, #116b27 0%, #22863a 100%);
+    color: white;
     border: none;
+    padding: 16px 48px;
+    font-size: 16px;
+    font-weight: 700;
     border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s;
-    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 12px rgba(17, 107, 39, 0.25);
+    letter-spacing: 0.3px;
+}
+
+.btn-submit:hover:not(:disabled) {
+    background: linear-gradient(135deg, #0e5620 0%, #1a6b2e 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(17, 107, 39, 0.35);
+}
+
+.btn-submit:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(17, 107, 39, 0.25);
+}
+
+.btn-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-text {
     display: inline-block;
 }
 
-.btn-success {
-    background-color: #22863a;
-    color: white;
+.btn-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spinner 0.8s linear infinite;
 }
 
-.btn-success:hover:not(:disabled) {
-    background-color: #1a6b2e;
+@keyframes spinner {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
-.btn-success:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
+/* Alert */
 .alert {
-    padding: 15px;
+    display: flex;
+    gap: 16px;
+    padding: 16px 20px;
     border-radius: 6px;
-    margin-top: 20px;
+    margin-bottom: 20px;
     border-left: 4px solid;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.alert-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.alert-content {
+    flex: 1;
+}
+
+.alert-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+}
+
+.alert-message {
+    font-size: 14px;
+    margin: 0;
+    line-height: 1.5;
 }
 
 .alert-error {
-    background: #f8d7da;
-    color: #721c24;
-    border-left-color: #dc3545;
+    background: #ffebee;
+    color: #c62828;
+    border-left-color: #d32f2f;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .page-header {
+        padding: 32px 20px;
+        margin-bottom: 24px;
+    }
+
+    .page-title {
+        font-size: 28px;
+    }
+
+    .header-subtitle {
+        font-size: 14px;
+    }
+
+    .loading-container,
+    .error-state,
+    .voted-state {
+        margin: 20px;
+        padding: 60px 30px;
+        min-height: 350px;
+    }
+
+    .error-icon,
+    .voted-icon {
+        font-size: 60px;
+        margin-bottom: 16px;
+    }
+
+    .error-state h2,
+    .voted-state h2 {
+        font-size: 20px;
+    }
+
+    .positions-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .submit-section {
+        flex-direction: column;
+    }
+
+    .btn-submit {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-header {
+        padding: 24px 16px;
+    }
+
+    .page-title {
+        font-size: 24px;
+    }
+
+    .loading-container,
+    .error-state,
+    .voted-state {
+        margin: 16px;
+        padding: 40px 20px;
+        min-height: 300px;
+    }
+
+    .error-icon,
+    .voted-icon {
+        font-size: 50px;
+    }
+
+    .error-state h2,
+    .voted-state h2 {
+        font-size: 18px;
+    }
+
+    .error-state p,
+    .voted-state p {
+        font-size: 14px;
+    }
+
+    .position-header {
+        flex-direction: column;
+    }
+
+    .vote-counter {
+        width: 100%;
+    }
+
+    .btn-submit {
+        padding: 14px 24px;
+        font-size: 15px;
+    }
 }
 </style>

@@ -1,132 +1,263 @@
 <template>
-    <div>
-        <h1 class="page-title">Edit Election</h1>
+    <div class="election-edit-page">
+        <!-- Loading State -->
+        <div v-if="loading" class="loading-container">
+            <div class="spinner"></div>
+            <p>Loading election...</p>
+        </div>
 
-        <div class="form-container">
-            <form @submit.prevent="updateElection">
-                <div class="form-group">
-                    <label for="title">Election Title:</label>
-                    <input
-                        v-model="form.title"
-                        type="text"
-                        id="title"
-                        required
-                    />
-                </div>
-
-                <div class="form-group">
-                    <label for="description">Description:</label>
-                    <textarea
-                        v-model="form.description"
-                        id="description"
-                        rows="4"
-                    ></textarea>
-                </div>
-
-                <div class="form-group">
-                    <h3>Edit Positions</h3>
+        <!-- Main Content -->
+        <template v-else>
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="header-content">
+                    <h1>Edit Election</h1>
+                    <p>Update election details, positions, and candidates</p>
                     <div
-                        v-for="(pos, idx) in form.positions"
-                        :key="idx"
-                        class="position-container"
+                        class="status-info"
+                        :class="{
+                            'status-active': election.status === 'active',
+                        }"
                     >
-                        <div class="position-input">
-                            <div class="position-name-group">
-                                <input
-                                    v-model="pos.name"
-                                    type="text"
-                                    placeholder="Position Name"
-                                    required
-                                />
-                            </div>
-                            <div class="max-votes-group">
-                                <label
-                                    for="max-votes-${idx}"
-                                    class="max-votes-label"
-                                    >Max Votes Allowed:</label
-                                >
-                                <input
-                                    :id="`max-votes-${idx}`"
-                                    v-model.number="pos.max_votes"
-                                    type="number"
-                                    placeholder="1"
-                                    min="1"
-                                    required
-                                />
-                            </div>
-                            <button
-                                type="button"
-                                @click="removePosition(idx)"
-                                class="btn btn-sm btn-danger"
-                            >
-                                Remove Position
-                            </button>
+                        <span class="status-dot"></span>
+                        {{
+                            election.status === "active"
+                                ? "Active - Currently Running"
+                                : "Election Ended"
+                        }}
+                    </div>
+                </div>
+                <router-link to="/admin/elections" class="btn-link">
+                    ← Back to Elections
+                </router-link>
+            </div>
+
+            <!-- Form Container -->
+            <div class="form-container">
+                <form @submit.prevent="updateElection">
+                    <!-- Basic Information Section -->
+                    <section class="form-section">
+                        <div class="section-header">
+                            <h2>Basic Information</h2>
+                            <p>Election details</p>
                         </div>
 
-                        <div class="candidates-section">
-                            <h4>
-                                Candidates for
-                                {{ pos.name || "Position " + (idx + 1) }}
-                            </h4>
-                            <div
-                                v-for="(candidate, cIdx) in pos.candidates"
-                                :key="cIdx"
-                                class="candidate-input"
-                            >
-                                <input
-                                    v-model="candidate.name"
-                                    type="text"
-                                    placeholder="Candidate Name"
-                                    required
-                                />
-                                <button
-                                    type="button"
-                                    @click="removeCandidate(idx, cIdx)"
-                                    class="btn btn-sm btn-danger"
+                        <div class="form-group">
+                            <label for="title" class="form-label">
+                                <span class="required">*</span> Election Title
+                            </label>
+                            <input
+                                v-model="form.title"
+                                type="text"
+                                id="title"
+                                placeholder="e.g., Student President 2025"
+                                class="form-input"
+                                required
+                            />
+                            <p class="form-help">
+                                Give your election a clear, descriptive title
+                            </p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="description" class="form-label">
+                                Description
+                            </label>
+                            <textarea
+                                v-model="form.description"
+                                id="description"
+                                placeholder="Optional: Add details about this election, timeline, instructions, etc."
+                                class="form-textarea"
+                                rows="4"
+                            ></textarea>
+                            <p class="form-help">
+                                Voters will see this when participating
+                            </p>
+                        </div>
+                    </section>
+
+                    <!-- Positions & Candidates Section -->
+                    <section class="form-section">
+                        <div class="section-header">
+                            <h2>Positions & Candidates</h2>
+                            <p>
+                                <span
+                                    v-if="election.status === 'active'"
+                                    class="warning-badge"
                                 >
-                                    Remove
+                                    ⚠ Active election - Use caution when editing
+                                </span>
+                                <span v-else class="info-badge">
+                                    ℹ This election has ended
+                                </span>
+                            </p>
+                        </div>
+
+                        <div
+                            v-for="(pos, idx) in form.positions"
+                            :key="idx"
+                            class="position-card"
+                        >
+                            <!-- Position Header -->
+                            <div class="position-header">
+                                <div class="position-number">
+                                    Position {{ idx + 1 }}
+                                </div>
+                                <button
+                                    v-if="form.positions.length > 1"
+                                    type="button"
+                                    @click="removePosition(idx)"
+                                    class="btn-remove"
+                                    title="Remove this position"
+                                >
+                                    🗑 Remove
                                 </button>
                             </div>
-                            <button
-                                type="button"
-                                @click="addCandidate(idx)"
-                                class="btn btn-sm btn-secondary"
-                            >
-                                Add Candidate
-                            </button>
-                        </div>
-                    </div>
-                    <button
-                        type="button"
-                        @click="addPosition"
-                        class="btn btn-sm btn-secondary"
-                    >
-                        Add Position
-                    </button>
-                </div>
 
-                <div class="form-actions">
-                    <button
-                        type="submit"
-                        class="btn btn-primary"
-                        :disabled="updating"
-                    >
-                        {{ updating ? "Updating..." : "Update Election" }}
-                    </button>
-                    <router-link to="/admin/elections" class="btn btn-secondary"
-                        >Cancel</router-link
-                    >
-                </div>
-            </form>
-        </div>
+                            <!-- Position Details -->
+                            <div class="position-details">
+                                <div class="detail-field">
+                                    <label
+                                        :for="`pos-name-${idx}`"
+                                        class="form-label"
+                                    >
+                                        <span class="required">*</span> Position
+                                        Name
+                                    </label>
+                                    <input
+                                        :id="`pos-name-${idx}`"
+                                        v-model="pos.name"
+                                        type="text"
+                                        placeholder="e.g., President, Vice President"
+                                        class="form-input"
+                                        required
+                                    />
+                                </div>
+
+                                <div class="detail-field">
+                                    <label
+                                        :for="`max-votes-${idx}`"
+                                        class="form-label"
+                                    >
+                                        <span class="required">*</span> Max
+                                        Votes Per Voter
+                                    </label>
+                                    <input
+                                        :id="`max-votes-${idx}`"
+                                        v-model.number="pos.max_votes"
+                                        type="number"
+                                        placeholder="1"
+                                        min="1"
+                                        class="form-input"
+                                        required
+                                    />
+                                    <p class="form-help">
+                                        How many candidates can each voter
+                                        select for this position?
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Candidates Section -->
+                            <div class="candidates-container">
+                                <div class="candidates-header">
+                                    <h4>
+                                        Candidates for
+                                        {{ pos.name || `Position ${idx + 1}` }}
+                                    </h4>
+                                    <span class="candidate-count"
+                                        >{{
+                                            pos.candidates.filter((c) =>
+                                                c.name.trim(),
+                                            ).length
+                                        }}
+                                        added</span
+                                    >
+                                </div>
+
+                                <div
+                                    v-for="(candidate, cIdx) in pos.candidates"
+                                    :key="cIdx"
+                                    class="candidate-row"
+                                >
+                                    <div class="candidate-input-wrapper">
+                                        <span class="candidate-number">{{
+                                            cIdx + 1
+                                        }}</span>
+                                        <input
+                                            v-model="candidate.name"
+                                            type="text"
+                                            :placeholder="`Candidate ${cIdx + 1} name`"
+                                            class="form-input"
+                                        />
+                                    </div>
+                                    <button
+                                        v-if="pos.candidates.length > 1"
+                                        type="button"
+                                        @click="removeCandidate(idx, cIdx)"
+                                        class="btn-remove-candidate"
+                                        title="Remove candidate"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    @click="addCandidate(idx)"
+                                    class="btn-add-candidate"
+                                >
+                                    <span>+ Add Candidate</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Add Position Button -->
+                        <button
+                            type="button"
+                            @click="addPosition"
+                            class="btn-add-position"
+                        >
+                            <span>+ Add Position</span>
+                        </button>
+                    </section>
+
+                    <!-- Form Actions -->
+                    <div class="form-actions">
+                        <button
+                            type="submit"
+                            class="btn btn-primary btn-lg"
+                            :disabled="updating"
+                        >
+                            <span v-if="!updating">✓ Update Election</span>
+                            <span v-else>
+                                <span class="spinner-mini"></span>
+                                Updating...
+                            </span>
+                        </button>
+                        <router-link
+                            to="/admin/elections"
+                            class="btn btn-secondary btn-lg"
+                        >
+                            Cancel
+                        </router-link>
+                    </div>
+                </form>
+            </div>
+        </template>
     </div>
 </template>
 
 <script>
 import { adminAPI } from "../../services/api.js";
+import { useNotification } from "../../composables/useNotification.js";
 
 export default {
     name: "AdminEditElection",
+    setup() {
+        const { error: showError, success: showSuccess } = useNotification();
+        return { showError, showSuccess };
+    },
     data() {
         return {
             election: { title: "", description: "", positions: [] },
@@ -173,7 +304,7 @@ export default {
                 };
             } catch (error) {
                 console.error("Error loading election:", error);
-                alert("Failed to load election");
+                this.showError("Failed to load election");
                 this.$router.push("/admin/elections");
             } finally {
                 this.loading = false;
@@ -197,7 +328,7 @@ export default {
         },
         async updateElection() {
             if (!this.form.title) {
-                alert("Please enter election title");
+                this.showError("Please enter election title");
                 return;
             }
 
@@ -205,12 +336,12 @@ export default {
             for (let i = 0; i < this.form.positions.length; i++) {
                 const position = this.form.positions[i];
                 if (!position.name) {
-                    alert(`Please enter a name for position ${i + 1}`);
+                    this.showError(`Please enter a name for position ${i + 1}`);
                     return;
                 }
 
                 if (!position.max_votes || position.max_votes < 1) {
-                    alert(
+                    this.showError(
                         `Please enter a valid max votes for position: ${position.name}`,
                     );
                     return;
@@ -220,7 +351,7 @@ export default {
                     c.name.trim(),
                 );
                 if (validCandidates.length === 0) {
-                    alert(
+                    this.showError(
                         `Please add at least one candidate for position: ${position.name}`,
                     );
                     return;
@@ -249,11 +380,11 @@ export default {
                     formData,
                 );
 
-                alert("Election updated successfully!");
+                this.showSuccess("Election updated successfully!");
                 this.$router.push("/admin/elections");
             } catch (error) {
                 console.error("Error updating election:", error);
-                alert(
+                this.showError(
                     "Failed to update election: " +
                         (error.response?.data?.message || error.message),
                 );
@@ -266,186 +397,577 @@ export default {
 </script>
 
 <style scoped>
-.page-title {
-    font-size: 32px;
-    font-weight: 600;
-    margin-bottom: 30px;
-    color: #333;
+.election-edit-page {
+    padding: 20px 0;
 }
 
-.form-container {
-    background: white;
-    padding: 30px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: #333;
-}
-
-.form-group input,
-.form-group textarea {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 14px;
-}
-
-.form-group input:focus,
-.form-group textarea:focus {
-    outline: none;
-    border-color: #116b27;
-    box-shadow: 0 0 0 3px rgba(17, 107, 39, 0.1);
-}
-
-.position-container {
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-    background-color: #f9f9f9;
-}
-
-.position-input {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 15px;
-    align-items: flex-start;
-}
-
-.position-name-group {
-    flex: 2;
-}
-
-.position-name-group input {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 14px;
-}
-
-.position-name-group input:focus {
-    outline: none;
-    border-color: #116b27;
-    box-shadow: 0 0 0 3px rgba(17, 107, 39, 0.1);
-}
-
-.max-votes-group {
+/* ==================== Loading Container ==================== */
+.loading-container {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    flex: 0.8;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 20px;
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 40px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
-.max-votes-label {
+.spinner {
+    width: 56px;
+    height: 56px;
+    border: 4px solid #e0e0e0;
+    border-top: 4px solid #1565c0;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-container p {
+    color: #666;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* ==================== Header ==================== */
+.page-header {
+    background: #116b27;
+    border-radius: 12px;
+    padding: 40px;
+    margin-bottom: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 30px;
+    color: white;
+    box-shadow: 0 4px 20px rgba(13, 71, 161, 0.1);
+}
+
+.header-content h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.5px;
+}
+
+.header-content p {
+    font-size: 16px;
+    opacity: 0.95;
+    margin: 0 0 16px 0;
+    font-weight: 400;
+}
+
+.status-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    font-size: 13px;
     font-weight: 600;
-    font-size: 12px;
-    color: #333;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.status-active {
+    background: rgba(76, 175, 80, 0.8);
+    border-color: rgba(76, 175, 80, 1);
+}
+
+.status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: white;
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.btn-link {
+    color: white;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 10px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
     white-space: nowrap;
 }
 
-.max-votes-group input {
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
+.btn-link:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* ==================== Form Container ==================== */
+.form-container {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+form {
+    padding: 40px;
+}
+
+/* ==================== Form Sections ==================== */
+.form-section {
+    margin-bottom: 40px;
+    padding-bottom: 40px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.form-section:last-of-type {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+.section-header {
+    margin-bottom: 30px;
+}
+
+.section-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1565c0;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.3px;
+}
+
+.section-header p {
     font-size: 14px;
-}
-
-.max-votes-group input:focus {
-    outline: none;
-    border-color: #116b27;
-    box-shadow: 0 0 0 3px rgba(17, 107, 39, 0.1);
-}
-
-.candidates-section {
-    margin-left: 20px;
-}
-
-.candidates-section h4 {
-    margin: 0 0 10px 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: #555;
-}
-
-.candidate-input {
+    color: #888;
+    margin: 0;
     display: flex;
-    gap: 10px;
-    margin-bottom: 8px;
+    align-items: center;
+    gap: 8px;
 }
 
-.candidate-input input {
+.warning-badge,
+.info-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.warning-badge {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffc107;
+}
+
+.info-badge {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* ==================== Form Groups & Inputs ==================== */
+.form-group {
+    margin-bottom: 24px;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.required {
+    color: #d32f2f;
+    margin-right: 4px;
+}
+
+.form-input,
+.form-textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    background: #fafafa;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+    outline: none;
+    background: white;
+    border-color: #1565c0;
+    box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.1);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-help {
+    font-size: 12px;
+    color: #888;
+    margin: 8px 0 0 0;
+    font-style: italic;
+}
+
+/* ==================== Position Card ==================== */
+.position-card {
+    background: #f8f9fb;
+    border: 2px solid #e8eef5;
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 20px;
+    transition: all 0.2s ease;
+}
+
+.position-card:hover {
+    border-color: #1565c0;
+    box-shadow: 0 4px 16px rgba(21, 101, 192, 0.08);
+}
+
+.position-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.position-number {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1565c0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-remove {
+    background: #ffebee;
+    color: #d32f2f;
+    border: 1px solid #ffcdd2;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-remove:hover {
+    background: #ffcdd2;
+    border-color: #ef5350;
+}
+
+/* Position Details */
+.position-details {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+@media (max-width: 640px) {
+    .position-details {
+        grid-template-columns: 1fr;
+    }
+}
+
+.detail-field {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ==================== Candidates Container ==================== */
+.candidates-container {
+    background: white;
+    border: 1px dashed #d0d0d0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.candidates-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.candidates-header h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.candidate-count {
+    font-size: 12px;
+    background: #e3f2fd;
+    color: #0d47a1;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+/* Candidate Rows */
+.candidate-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: center;
+}
+
+.candidate-row:last-child {
+    margin-bottom: 16px;
+}
+
+.candidate-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     flex: 1;
 }
 
+.candidate-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    background: #e3f2fd;
+    color: #0d47a1;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.candidate-input-wrapper .form-input {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.btn-remove-candidate {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    background: #ffebee;
+    color: #d32f2f;
+    border: 1px solid #ffcdd2;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.btn-remove-candidate:hover {
+    background: #ffcdd2;
+}
+
+/* Add Buttons */
+.btn-add-candidate,
+.btn-add-position {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px dashed #1565c0;
+    background: transparent;
+    color: #1565c0;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.btn-add-candidate:hover,
+.btn-add-position:hover {
+    background: #e3f2fd;
+    border-color: #0d47a1;
+}
+
+.btn-add-position {
+    margin-top: 20px;
+    padding: 14px 16px;
+    font-size: 15px;
+}
+
+/* ==================== Form Actions ==================== */
 .form-actions {
     display: flex;
-    gap: 10px;
-    margin-top: 30px;
+    gap: 12px;
+    margin-top: 36px;
+    padding-top: 30px;
+    border-top: 1px solid #f0f0f0;
+}
+
+@media (max-width: 640px) {
+    .form-actions {
+        flex-direction: column;
+    }
 }
 
 .btn {
-    padding: 10px 20px;
+    padding: 12px 24px;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     text-decoration: none;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    position: relative;
+    overflow: hidden;
 }
 
-.btn-primary {
-    background-color: #0366d6;
-    color: white;
-    flex: 1;
-}
-
-.btn-primary:hover:not(:disabled) {
-    background-color: #0256c1;
-}
-
-.btn-primary:disabled {
+.btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
 
-.btn-secondary {
-    background-color: #6c757d;
+.btn-primary {
+    background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%);
     color: white;
-    flex: 1;
+    box-shadow: 0 4px 12px rgba(13, 71, 161, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #0a3d91 0%, #0d47a1 100%);
+    box-shadow: 0 8px 24px rgba(13, 71, 161, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background: #f0f0f0;
+    color: #1a1a1a;
+    border: 1px solid #e0e0e0;
 }
 
 .btn-secondary:hover {
-    background-color: #5a6268;
+    background: #e8e8e8;
+    border-color: #d0d0d0;
 }
 
-.btn-danger {
-    background-color: #d73a49;
-    color: white;
+.btn-lg {
+    padding: 14px 32px;
+    font-size: 15px;
+    flex: 1;
 }
 
-.btn-sm {
-    padding: 6px 12px;
-    font-size: 12px;
+.spinner-mini {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    margin-right: 4px;
 }
 
-.loading {
-    text-align: center;
-    padding: 40px;
-    color: #666;
+/* ==================== Responsive Design ==================== */
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 24px;
+    }
+
+    form {
+        padding: 24px;
+    }
+
+    .section-header h2 {
+        font-size: 18px;
+    }
+
+    .position-card {
+        padding: 16px;
+    }
+
+    .candidates-container {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-header {
+        padding: 16px;
+    }
+
+    .page-header h1 {
+        font-size: 24px;
+    }
+
+    form {
+        padding: 16px;
+    }
+
+    .form-actions {
+        gap: 8px;
+    }
+
+    .btn-lg {
+        padding: 12px 16px;
+        font-size: 13px;
+    }
+
+    .status-info {
+        width: 100%;
+        justify-content: center;
+    }
 }
 </style>

@@ -1,289 +1,327 @@
 <template>
-  <div>
-    <div class="welcome-section">
-      <h1 class="welcome-title">Welcome, <em>{{ voter.name }}</em>!</h1>
-      <p class="welcome-subtitle">"Cast your vote and make your voice heard."</p>
-    </div>
-
-    <!-- Election Status Alert -->
-    <div v-if="electionStatus" :class="['alert', `alert-${electionStatus.type}`]" style="display: block; margin-bottom: 20px;">
-      <strong>⏳ Election Status:</strong> {{ electionStatus.message }}
-    </div>
-
-    <div class="feature-grid">
-      <div class="feature-card">
-        <h3 class="feature-title">Vote Now</h3>
-        <p class="feature-description">Cast your vote in active elections and make your voice heard.</p>
-        <template v-if="activeElection">
-          <template v-if="!hasVoted">
-            <router-link to="/voter/vote" class="btn btn-primary">Start Voting</router-link>
-          </template>
-          <template v-else>
-            <button class="btn btn-secondary" disabled>Already Voted</button>
-          </template>
-        </template>
-        <template v-else>
-          <button class="btn btn-secondary" disabled>No Active Election</button>
-        </template>
-      </div>
-
-      <div class="feature-card">
-        <h3 class="feature-title">View Vote</h3>
-        <p class="feature-description">Check your voting history and verify your submissions.</p>
-        <router-link to="/voter/votes" class="btn btn-success">View History</router-link>
-      </div>
-
-      <div class="feature-card">
-        <h3 class="feature-title">View Results</h3>
-        <p class="feature-description">See real-time results and election outcomes.</p>
-        <router-link to="/voter/results" class="btn btn-purple">View Results</router-link>
-      </div>
-    </div>
-
-    <div class="announcements-section">
-      <div class="announcements-header">
-        <span class="announcements-icon">📢</span>
-        <h2 class="announcements-title">Announcements</h2>
-      </div>
-
-      <template v-if="announcements.length > 0">
-        <div v-for="(announcement, index) in announcements" :key="index" class="announcement-item">
-          <p class="announcement-text">{{ announcement.content }}</p>
+    <div>
+        <div class="welcome-section">
+            <h1 class="welcome-title">
+                Welcome, <em>{{ voter.name }}</em
+                >!
+            </h1>
+            <p class="welcome-subtitle">
+                "Cast your vote and make your voice heard."
+            </p>
         </div>
-      </template>
-      <template v-else>
-        <p style="text-align: center; color: #666;">No announcements at this time.</p>
-      </template>
+
+        <!-- Election Status Alert -->
+        <div
+            v-if="electionStatus"
+            :class="['alert', `alert-${electionStatus.type}`]"
+            style="display: block; margin-bottom: 20px"
+        >
+            <strong>⏳ Election Status:</strong> {{ electionStatus.message }}
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h3 class="feature-title">Vote Now</h3>
+                <p class="feature-description">
+                    Cast your vote in active elections and make your voice
+                    heard.
+                </p>
+                <template v-if="activeElection">
+                    <template v-if="!hasVoted">
+                        <router-link to="/voter/vote" class="btn btn-primary"
+                            >Start Voting</router-link
+                        >
+                    </template>
+                    <template v-else>
+                        <button class="btn btn-secondary" disabled>
+                            Already Voted
+                        </button>
+                    </template>
+                </template>
+                <template v-else>
+                    <button class="btn btn-secondary" disabled>
+                        No Active Election
+                    </button>
+                </template>
+            </div>
+
+            <div class="feature-card">
+                <h3 class="feature-title">View Vote</h3>
+                <p class="feature-description">
+                    Check your voting history and verify your submissions.
+                </p>
+                <router-link to="/voter/votes" class="btn btn-success"
+                    >View History</router-link
+                >
+            </div>
+
+            <div class="feature-card">
+                <h3 class="feature-title">View Results</h3>
+                <p class="feature-description">
+                    See real-time results and election outcomes.
+                </p>
+                <router-link to="/voter/results" class="btn btn-purple"
+                    >View Results</router-link
+                >
+            </div>
+        </div>
+
+        <div class="announcements-section">
+            <div class="announcements-header">
+                <span class="announcements-icon">📢</span>
+                <h2 class="announcements-title">Announcements</h2>
+            </div>
+
+            <template v-if="announcements.length > 0">
+                <div
+                    v-for="(announcement, index) in announcements"
+                    :key="index"
+                    class="announcement-item"
+                >
+                    <p class="announcement-text">{{ announcement.content }}</p>
+                </div>
+            </template>
+            <template v-else>
+                <p style="text-align: center; color: #666">
+                    No announcements at this time.
+                </p>
+            </template>
+        </div>
     </div>
-  </div>
 </template>
 
 <script>
-import { voterAPI } from '../../services/api.js';
+import { voterAPI } from "../../services/api.js";
 
 export default {
-  name: 'VoterDashboard',
-  data() {
-    return {
-      voter: { name: '' },
-      announcements: [],
-      activeElection: null,
-      hasVoted: false,
-      electionStatus: null,
-      loading: true,
-    };
-  },
-  mounted() {
-    this.loadDashboard();
-  },
-  methods: {
-    async loadDashboard() {
-      try {
-        const response = await voterAPI.getDashboard();
-        const data = response.data;
-        
-        this.voter = data.voter || { name: 'Student' };
-        this.announcements = data.announcements || [];
-        this.activeElection = data.active_election;
-        this.hasVoted = data.has_voted || false;
-        
-        if (this.activeElection) {
-          this.electionStatus = {
-            type: 'info',
-            message: `${this.activeElection.title} is currently active`,
-          };
-        }
-      } catch (error) {
-        console.error('Error loading dashboard:', error);
-        // Set default data if API fails
-        this.voter = { name: 'Student' };
-      } finally {
-        this.loading = false;
-      }
-    }
-  }
-}
+    name: "VoterDashboard",
+    data() {
+        return {
+            voter: { name: "" },
+            announcements: [],
+            activeElection: null,
+            hasVoted: false,
+            electionStatus: null,
+            loading: true,
+        };
+    },
+    mounted() {
+        this.loadDashboard();
+    },
+    methods: {
+        async loadDashboard() {
+            try {
+                const response = await voterAPI.getDashboard();
+                const data = response.data;
+
+                this.voter = data.voter || { name: "Student" };
+                this.announcements = data.announcements || [];
+                this.activeElection = data.active_election;
+                this.hasVoted = data.has_voted || false;
+
+                // Show status message for both active and no-election cases
+                if (this.activeElection) {
+                    this.electionStatus = {
+                        type: "info",
+                        message: `${this.activeElection.title} is currently active`,
+                    };
+                } else {
+                    this.electionStatus = {
+                        type: "warning",
+                        message: "No active election at the moment",
+                    };
+                }
+            } catch (error) {
+                console.error("Error loading dashboard:", error);
+                // Set default data if API fails
+                this.voter = { name: "Student" };
+            } finally {
+                this.loading = false;
+            }
+        },
+    },
+};
 </script>
 
 <style scoped>
 .welcome-section {
-  margin-bottom: 40px;
+    margin-bottom: 40px;
 }
 
 .welcome-title {
-  font-size: 36px;
-  font-weight: 600;
-  margin-bottom: 10px;
-  color: #333;
+    font-size: 36px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #333;
 }
 
 .welcome-title em {
-  font-style: normal;
-  color: #116b27;
+    font-style: normal;
+    color: #116b27;
 }
 
 .welcome-subtitle {
-  font-size: 18px;
-  color: #666;
-  line-height: 1.6;
+    font-size: 18px;
+    color: #666;
+    line-height: 1.6;
 }
 
 .alert {
-  padding: 15px;
-  border-radius: 6px;
-  margin-bottom: 20px;
-  border-left: 4px solid;
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    border-left: 4px solid;
 }
 
 .alert-info {
-  background: #d1ecf1;
-  color: #0c5460;
-  border-left-color: #17a2b8;
+    background: #d1ecf1;
+    color: #0c5460;
+    border-left-color: #17a2b8;
 }
 
 .alert-warning {
-  background: #fff3cd;
-  color: #856404;
-  border-left-color: #ffc107;
+    background: #fff3cd;
+    color: #856404;
+    border-left-color: #ffc107;
 }
 
 .feature-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
-  width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+    width: 100%;
 }
 
 .feature-card {
-  background: white;
-  padding: 30px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s;
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
 }
 
 .feature-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .feature-title {
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 10px;
-  color: #333;
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #333;
 }
 
 .feature-description {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 20px;
-  line-height: 1.5;
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 20px;
+    line-height: 1.5;
 }
 
 .btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s;
-  text-decoration: none;
-  display: inline-block;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-block;
 }
 
 .btn-primary {
-  background-color: #0366d6;
-  color: white;
+    background-color: #0366d6;
+    color: white;
 }
 
 .btn-primary:hover {
-  background-color: #0256c1;
+    background-color: #0256c1;
 }
 
 .btn-success {
-  background-color: #22863a;
-  color: white;
+    background-color: #22863a;
+    color: white;
 }
 
 .btn-success:hover {
-  background-color: #1a6b2e;
+    background-color: #1a6b2e;
 }
 
 .btn-secondary {
-  background-color: #6c757d;
-  color: white;
+    background-color: #6c757d;
+    color: white;
 }
 
 .btn-secondary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .btn-purple {
-  background-color: #8b5cf6;
-  color: white;
+    background-color: #8b5cf6;
+    color: white;
 }
 
 .btn-purple:hover {
-  background-color: #7c3aed;
+    background-color: #7c3aed;
 }
 
 .announcements-section {
-  background: white;
-  padding: 30px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  width: 100%;
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: 100%;
 }
 
 .announcements-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
 }
 
 .announcements-icon {
-  font-size: 24px;
+    font-size: 24px;
 }
 
 .announcements-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
 }
 
 .announcement-item {
-  padding: 15px;
-  border-left: 4px solid;
-  margin-bottom: 15px;
-  background-color: #f8f9fa;
-  border-radius: 4px;
+    padding: 15px;
+    border-left: 4px solid;
+    margin-bottom: 15px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
 }
 
 .announcement-item:nth-child(1) {
-  border-left-color: #0366d6;
+    border-left-color: #0366d6;
 }
 
 .announcement-item:nth-child(2) {
-  border-left-color: #d73a49;
+    border-left-color: #d73a49;
 }
 
 .announcement-item:nth-child(3) {
-  border-left-color: #22863a;
+    border-left-color: #22863a;
 }
 
 .announcement-item:nth-child(4) {
-  border-left-color: #f9826c;
+    border-left-color: #f9826c;
 }
 
 .announcement-text {
-  font-size: 14px;
-  color: #333;
-  line-height: 1.5;
-  margin: 0;
+    font-size: 14px;
+    color: #333;
+    line-height: 1.5;
+    margin: 0;
 }
 </style>
