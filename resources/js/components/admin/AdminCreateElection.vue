@@ -217,14 +217,15 @@
 </template>
 
 <script>
-import { adminAPI } from "../../services/api.js";
+import { useElectionStore } from "../../stores/electionStore.js";
 import { useNotification } from "../../composables/useNotification.js";
 
 export default {
     name: "AdminCreateElection",
     setup() {
-        const { error: showError } = useNotification();
-        return { showError };
+        const electionStore = useElectionStore();
+        const { error: showError, success: showSuccess } = useNotification();
+        return { electionStore, showError, showSuccess };
     },
     data() {
         return {
@@ -308,8 +309,9 @@ export default {
                         .filter((p) => p.name),
                 };
 
-                const response = await adminAPI.createElection(formData);
+                await this.electionStore.createElection(formData);
 
+                this.showSuccess("Election created successfully!");
                 this.$router.push("/admin/elections");
             } catch (error) {
                 console.error("Error creating election:", error);

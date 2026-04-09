@@ -114,25 +114,19 @@
 </template>
 
 <script>
-import { voterAPI } from "../../services/api.js";
+import { useAuthStore } from "../../stores/authStore.js";
 import { useNotification } from "../../composables/useNotification.js";
+import { voterAPI } from "../../services/api.js";
 
 export default {
     name: "VoterProfile",
     setup() {
+        const authStore = useAuthStore();
         const { info: showInfo } = useNotification();
-        return { showInfo };
+        return { authStore, showInfo };
     },
     data() {
         return {
-            voter: {
-                name: "",
-                email: "",
-                student_id: "",
-                created_at: new Date(),
-                votes_count: 0,
-            },
-            loading: true,
             isEditing: false,
             updateLoading: false,
             editError: "",
@@ -143,20 +137,23 @@ export default {
             },
         };
     },
-    mounted() {
-        this.loadProfile();
+    computed: {
+        voter() {
+            return (
+                this.authStore.user || {
+                    name: "",
+                    email: "",
+                    student_id: "",
+                    created_at: new Date(),
+                    votes_count: 0,
+                }
+            );
+        },
+        loading() {
+            return this.authStore.isLoading;
+        },
     },
     methods: {
-        async loadProfile() {
-            try {
-                const response = await voterAPI.getProfile();
-                this.voter = response.data.voter || this.voter;
-            } catch (error) {
-                console.error("Error loading profile:", error);
-            } finally {
-                this.loading = false;
-            }
-        },
         formatDate(date) {
             return new Date(date).toLocaleDateString("en-US", {
                 year: "numeric",
@@ -205,8 +202,10 @@ export default {
                 });
 
                 if (response.data.success) {
-                    this.voter = response.data.voter || this.voter;
+                    // Update auth store with new user data
+                    this.authStore.updateUserData(response.data.voter);
                     this.isEditing = false;
+                    this.showInfo("Profile updated successfully!");
                 } else {
                     this.editError =
                         response.data.message || "Failed to update profile";

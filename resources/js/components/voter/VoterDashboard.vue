@@ -91,32 +91,44 @@
 </template>
 
 <script>
-import { voterAPI } from "../../services/api.js";
+import { useElectionStore } from "../../stores/electionStore.js";
+import { useAuthStore } from "../../stores/authStore.js";
 
 export default {
     name: "VoterDashboard",
+    setup() {
+        const electionStore = useElectionStore();
+        const authStore = useAuthStore();
+        return { electionStore, authStore };
+    },
     data() {
         return {
-            voter: { name: "" },
-            announcements: [],
-            activeElection: null,
-            hasVoted: false,
             electionStatus: null,
-            loading: true,
+            hasVoted: false,
         };
     },
-    mounted() {
-        this.loadDashboard();
+    computed: {
+        voter() {
+            return this.authStore.user || { name: "Student" };
+        },
+        announcements() {
+            return this.electionStore.announcements;
+        },
+        activeElection() {
+            return this.electionStore.activeElection;
+        },
+        loading() {
+            return this.electionStore.isLoading;
+        },
+    },
+    async mounted() {
+        await this.loadDashboard();
     },
     methods: {
         async loadDashboard() {
             try {
-                const response = await voterAPI.getDashboard();
-                const data = response.data;
+                const data = await this.electionStore.loadDashboard();
 
-                this.voter = data.voter || { name: "Student" };
-                this.announcements = data.announcements || [];
-                this.activeElection = data.active_election;
                 this.hasVoted = data.has_voted || false;
 
                 // Show status message for both active and no-election cases
@@ -133,10 +145,11 @@ export default {
                 }
             } catch (error) {
                 console.error("Error loading dashboard:", error);
-                // Set default data if API fails
-                this.voter = { name: "Student" };
-            } finally {
-                this.loading = false;
+                this.electionStatus = {
+                    type: "error",
+                    message:
+                        "Failed to load dashboard. Please refresh the page.",
+                };
             }
         },
     },

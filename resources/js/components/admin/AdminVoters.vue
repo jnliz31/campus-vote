@@ -36,22 +36,25 @@
 </template>
 
 <script>
-import { adminAPI } from "../../services/api.js";
+import { useElectionStore } from "../../stores/electionStore.js";
 import { useNotification } from "../../composables/useNotification.js";
 import { useConfirmDialog } from "../../composables/useConfirmDialog.js";
 
 export default {
     name: "AdminVoters",
     setup() {
+        const electionStore = useElectionStore();
         const { error: showError, success: showSuccess } = useNotification();
         const { confirmDangerous: showConfirmDangerous } = useConfirmDialog();
-        return { showError, showSuccess, showConfirmDangerous };
+        return { electionStore, showError, showSuccess, showConfirmDangerous };
     },
-    data() {
-        return {
-            voters: [],
-            loading: true,
-        };
+    computed: {
+        voters() {
+            return this.electionStore.voters;
+        },
+        loading() {
+            return this.electionStore.isLoading;
+        },
     },
     mounted() {
         this.loadVoters();
@@ -59,12 +62,9 @@ export default {
     methods: {
         async loadVoters() {
             try {
-                const response = await adminAPI.getVoters();
-                this.voters = response.data.voters || [];
+                await this.electionStore.loadVoters();
             } catch (error) {
                 console.error("Error loading voters:", error);
-            } finally {
-                this.loading = false;
             }
         },
         formatDate(date) {
@@ -82,17 +82,8 @@ export default {
             if (!confirmed) return;
 
             try {
-                const response = await adminAPI.deleteVoter(voterId);
-
-                if (response.data.success) {
-                    this.showSuccess("Voter deleted successfully!");
-                    this.loadVoters();
-                } else {
-                    this.showError(
-                        "Failed to delete voter: " +
-                            (response.data.message || "Unknown error"),
-                    );
-                }
+                await this.electionStore.deleteVoter(voterId);
+                this.showSuccess("Voter deleted successfully!");
             } catch (error) {
                 console.error("Error deleting voter:", error);
                 const errorMessage =

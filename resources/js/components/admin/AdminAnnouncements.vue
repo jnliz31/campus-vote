@@ -62,25 +62,32 @@
 </template>
 
 <script>
-import { adminAPI } from "../../services/api.js";
+import { useElectionStore } from "../../stores/electionStore.js";
 import { useNotification } from "../../composables/useNotification.js";
 import { useConfirmDialog } from "../../composables/useConfirmDialog.js";
 
 export default {
     name: "AdminAnnouncements",
     setup() {
+        const electionStore = useElectionStore();
         const { error: showError, success: showSuccess } = useNotification();
         const { confirmDangerous: showConfirmDangerous } = useConfirmDialog();
-        return { showError, showSuccess, showConfirmDangerous };
+        return { electionStore, showError, showSuccess, showConfirmDangerous };
     },
     data() {
         return {
-            announcements: [],
             form: { content: "" },
             showForm: false,
             loading: false,
-            loadingAnnouncements: true,
         };
+    },
+    computed: {
+        announcements() {
+            return this.electionStore.announcements;
+        },
+        loadingAnnouncements() {
+            return this.electionStore.isLoading;
+        },
     },
     mounted() {
         this.loadAnnouncements();
@@ -88,12 +95,9 @@ export default {
     methods: {
         async loadAnnouncements() {
             try {
-                const response = await adminAPI.getAnnouncements();
-                this.announcements = response.data.announcements || [];
+                await this.electionStore.loadAdminAnnouncements();
             } catch (error) {
                 console.error("Error loading announcements:", error);
-            } finally {
-                this.loadingAnnouncements = false;
             }
         },
         async saveAnnouncement() {
@@ -105,13 +109,12 @@ export default {
             this.loading = true;
 
             try {
-                await adminAPI.createAnnouncement({
+                await this.electionStore.createAnnouncement({
                     content: this.form.content,
                 });
                 this.form.content = "";
                 this.showForm = false;
                 this.showSuccess("Announcement posted successfully!");
-                this.loadAnnouncements();
             } catch (error) {
                 this.showError("Failed to post announcement");
             } finally {
@@ -130,18 +133,8 @@ export default {
             if (!confirmed) return;
 
             try {
-                const response =
-                    await adminAPI.deleteAnnouncement(announcementId);
-
-                if (response.data.success) {
-                    this.showSuccess("Announcement deleted successfully!");
-                    this.loadAnnouncements();
-                } else {
-                    this.showError(
-                        "Failed to delete announcement: " +
-                            (response.data.message || "Unknown error"),
-                    );
-                }
+                await this.electionStore.deleteAnnouncement(announcementId);
+                this.showSuccess("Announcement deleted successfully!");
             } catch (error) {
                 console.error("Error deleting announcement:", error);
                 const errorMessage =

@@ -7,6 +7,7 @@
 </template>
 
 <script>
+import { useAuthStore } from "../stores/authStore.js";
 import NotificationCenter from "./NotificationCenter.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
 
@@ -16,19 +17,13 @@ export default {
         NotificationCenter,
         ConfirmDialog,
     },
-    mounted() {
-        // Initialize app by checking auth status from session
-        this.checkAuthStatus();
+    setup() {
+        const authStore = useAuthStore();
+        return { authStore };
     },
-    methods: {
-        async checkAuthStatus() {
-            try {
-                // Try to determine if user is logged in by checking session
-                // This is handled by Laravel session middleware
-            } catch (error) {
-                console.error("Error checking auth status:", error);
-            }
-        },
+    async mounted() {
+        // Sync auth state with server on app initialization
+        await this.authStore.checkAuthStatus();
     },
 };
 </script>

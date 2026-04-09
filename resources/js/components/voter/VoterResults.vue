@@ -66,28 +66,51 @@
 </template>
 
 <script>
-import { voterAPI } from "../../services/api.js";
+import { useElectionStore } from "../../stores/electionStore.js";
+import {
+    getRealtimeUpdatesManager,
+    stopRealtimeUpdates,
+} from "../../services/realtimeUpdates.js";
 
 export default {
     name: "VoterResults",
-    data() {
-        return {
-            results: [],
-            loading: true,
-        };
+    setup() {
+        const electionStore = useElectionStore();
+        return { electionStore };
     },
-    mounted() {
-        this.loadResults();
+    computed: {
+        results() {
+            return this.electionStore.results || [];
+        },
+        loading() {
+            return this.electionStore.isLoading;
+        },
+    },
+    async mounted() {
+        await this.loadResults();
+        // Start real-time polling for live results
+        this.startRealtimeUpdates();
+    },
+    beforeUnmount() {
+        // Stop polling when page is destroyed
+        stopRealtimeUpdates();
     },
     methods: {
         async loadResults() {
             try {
-                const response = await voterAPI.getResults();
-                this.results = response.data.results || [];
+                await this.electionStore.loadResults();
             } catch (error) {
                 console.error("Error loading results:", error);
-            } finally {
-                this.loading = false;
+            }
+        },
+        startRealtimeUpdates() {
+            try {
+                const realtimeManager = getRealtimeUpdatesManager();
+                if (!realtimeManager.isRunning) {
+                    realtimeManager.start();
+                }
+            } catch (error) {
+                console.error("Error starting real-time updates:", error);
             }
         },
     },

@@ -172,13 +172,14 @@
 </template>
 
 <script>
-import { adminAPI } from "../../services/api.js";
+import { useElectionStore } from "../../stores/electionStore.js";
 import { useNotification } from "../../composables/useNotification.js";
 import { useConfirmDialog } from "../../composables/useConfirmDialog.js";
 
 export default {
     name: "AdminElections",
     setup() {
+        const electionStore = useElectionStore();
         const {
             error: showError,
             success: showSuccess,
@@ -187,6 +188,7 @@ export default {
         const { confirm: showConfirm, confirmDangerous: showConfirmDangerous } =
             useConfirmDialog();
         return {
+            electionStore,
             showError,
             showSuccess,
             showWarning,
@@ -194,13 +196,13 @@ export default {
             showConfirmDangerous,
         };
     },
-    data() {
-        return {
-            elections: [],
-            loading: true,
-        };
-    },
     computed: {
+        elections() {
+            return this.electionStore.elections || [];
+        },
+        loading() {
+            return this.electionStore.isLoading;
+        },
         activeCount() {
             return this.elections.filter((e) => e.status === "active").length;
         },
@@ -217,18 +219,16 @@ export default {
             );
         },
     },
-    mounted() {
-        this.loadElections();
+    async mounted() {
+        await this.loadElections();
     },
     methods: {
         async loadElections() {
             try {
-                const response = await adminAPI.getElections();
-                this.elections = response.data.elections || [];
+                await this.electionStore.loadAdminElections();
             } catch (error) {
                 console.error("Error loading elections:", error);
-            } finally {
-                this.loading = false;
+                this.showError("Failed to load elections");
             }
         },
         formatDate(date) {
@@ -266,21 +266,11 @@ export default {
             if (!confirmed) return;
 
             try {
-                await adminAPI.endElection(electionId);
+                await this.electionStore.endElection(electionId);
                 this.showSuccess("Election ended successfully!");
-                this.loadElections();
+                await this.loadElections();
             } catch (error) {
                 console.error("Error ending election:", error);
-
-                // Check for CSRF token error
-                if (error.response?.status === 419 || error.isCsrfError) {
-                    this.showError(
-                        "Security verification failed. Refreshing page...",
-                    );
-                    setTimeout(() => window.location.reload(), 1000);
-                    return;
-                }
-
                 const errorMessage =
                     error.response?.data?.message ||
                     error.message ||
@@ -316,30 +306,12 @@ export default {
             if (!confirmed) return;
 
             try {
-                const response = await adminAPI.deleteElection(electionId);
-
-                if (response.data.success) {
-                    // Show success message
-                    this.showSuccess("Election deleted successfully!");
-                    this.loadElections();
-                } else {
-                    this.showError(
-                        "Failed to delete election: " +
-                            (response.data.message || "Unknown error"),
-                    );
-                }
+                await this.electionStore.deleteElection(electionId);
+                // Show success message
+                this.showSuccess("Election deleted successfully!");
+                await this.loadElections();
             } catch (error) {
                 console.error("Error deleting election:", error);
-
-                // Check for CSRF token error
-                if (error.response?.status === 419 || error.isCsrfError) {
-                    this.showError(
-                        "Security verification failed. Refreshing page...",
-                    );
-                    setTimeout(() => window.location.reload(), 1000);
-                    return;
-                }
-
                 const errorMessage =
                     error.response?.data?.message ||
                     error.message ||

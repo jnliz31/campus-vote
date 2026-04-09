@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Election extends Model
 {
-    protected $fillable = ['title', 'status'];
+    protected $fillable = ['title', 'description', 'status'];
 
     public function positions(): HasMany
     {

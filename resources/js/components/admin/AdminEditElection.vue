@@ -249,14 +249,15 @@
 </template>
 
 <script>
-import { adminAPI } from "../../services/api.js";
+import { useElectionStore } from "../../stores/electionStore.js";
 import { useNotification } from "../../composables/useNotification.js";
 
 export default {
     name: "AdminEditElection",
     setup() {
+        const electionStore = useElectionStore();
         const { error: showError, success: showSuccess } = useNotification();
-        return { showError, showSuccess };
+        return { electionStore, showError, showSuccess };
     },
     data() {
         return {
@@ -277,8 +278,8 @@ export default {
         async loadElection() {
             try {
                 const id = this.$route.params.id;
-                const response = await adminAPI.getElection(id);
-                this.election = response.data.election || {};
+                const response = await this.electionStore.loadAdminElection(id);
+                this.election = response.election || {};
 
                 // Initialize form with election data
                 this.form = {
@@ -375,7 +376,7 @@ export default {
                         .filter((p) => p.name),
                 };
 
-                const response = await adminAPI.updateElection(
+                await this.electionStore.updateElection(
                     this.election.id,
                     formData,
                 );

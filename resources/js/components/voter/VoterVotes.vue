@@ -103,28 +103,33 @@
 </template>
 
 <script>
-import { voterAPI } from "../../services/api.js";
+import { useElectionStore } from "../../stores/electionStore.js";
 
 export default {
     name: "VoterVotes",
+    setup() {
+        const electionStore = useElectionStore();
+        return { electionStore };
+    },
     data() {
         return {
             votes: [],
-            loading: true,
         };
     },
-    mounted() {
-        this.loadVotes();
+    computed: {
+        loading() {
+            return this.electionStore.isLoading;
+        },
+    },
+    async mounted() {
+        await this.loadVotes();
     },
     methods: {
         async loadVotes() {
             try {
-                const response = await voterAPI.getVotes();
-                this.votes = response.data.votes || [];
+                this.votes = await this.electionStore.loadVotes();
             } catch (error) {
                 console.error("Error loading votes:", error);
-            } finally {
-                this.loading = false;
             }
         },
         formatDate(date) {

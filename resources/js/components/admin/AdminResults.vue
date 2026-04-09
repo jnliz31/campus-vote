@@ -72,28 +72,31 @@
 </template>
 
 <script>
-import { adminAPI } from "../../services/api.js";
+import { useElectionStore } from "../../stores/electionStore.js";
 
 export default {
     name: "AdminResults",
-    data() {
-        return {
-            results: [],
-            loading: true,
-        };
+    setup() {
+        const electionStore = useElectionStore();
+        return { electionStore };
     },
-    mounted() {
-        this.loadResults();
+    computed: {
+        results() {
+            return this.electionStore.results || [];
+        },
+        loading() {
+            return this.electionStore.isLoading;
+        },
+    },
+    async mounted() {
+        await this.loadResults();
     },
     methods: {
         async loadResults() {
             try {
-                const response = await adminAPI.getResults();
-                this.results = response.data.results || [];
+                await this.electionStore.loadAdminResults();
             } catch (error) {
                 console.error("Error loading results:", error);
-            } finally {
-                this.loading = false;
             }
         },
     },

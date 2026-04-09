@@ -56,6 +56,7 @@ class ElectionController extends Controller
 
         $election = Election::create([
             'title' => $request->title,
+            'description' => $request->description ?? '',
             'status' => 'active',
         ]);
 

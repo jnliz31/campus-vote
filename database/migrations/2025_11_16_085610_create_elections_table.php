@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('elections', function (Blueprint $table) {
             $table->id();
             $table->string('title');
+            $table->text('description')->nullable();
             $table->enum('status', ['active', 'ended'])->default('active');
             $table->timestamps();
         });

@@ -181,31 +181,38 @@
 </template>
 
 <script>
-import { voterAPI } from "../../services/api.js";
+import { useElectionStore } from "../../stores/electionStore.js";
 import { useNotification } from "../../composables/useNotification.js";
 import { useConfirmDialog } from "../../composables/useConfirmDialog.js";
 
 export default {
     name: "VoterVote",
     setup() {
+        const electionStore = useElectionStore();
         const { error: showError } = useNotification();
         const { confirmDangerous: showConfirmDangerous } = useConfirmDialog();
-        return { showError, showConfirmDangerous };
+        return { electionStore, showError, showConfirmDangerous };
     },
     data() {
         return {
-            election: {
-                title: "",
-                positions: [],
-            },
             votes: {},
-            loading: true,
             error: "",
             alreadyVoted: false,
             validationErrors: {},
         };
     },
     computed: {
+        election() {
+            return (
+                this.electionStore.currentElection || {
+                    title: "",
+                    positions: [],
+                }
+            );
+        },
+        loading() {
+            return this.electionStore.isLoading;
+        },
         isFormValid() {
             for (const position of this.election.positions) {
                 const selectedCount = this.votes[position.id]?.length || 0;
@@ -225,29 +232,19 @@ export default {
             return false;
         },
     },
-    mounted() {
-        this.loadVotePage();
+    async mounted() {
+        await this.loadVotePage();
     },
     methods: {
         async loadVotePage() {
-            this.loading = true;
             this.error = "";
             this.alreadyVoted = false;
             try {
-                const response = await voterAPI.getVote();
-                const data = response.data;
+                await this.electionStore.loadVotePage();
+                const data = this.electionStore.currentElection;
 
-                // Check if user has already voted FIRST (before checking election)
-                if (data.has_voted) {
-                    this.loading = false;
-                    this.alreadyVoted = true;
-                    setTimeout(() => this.$router.push("/voter/votes"), 2500);
-                    return;
-                }
-
-                // Then check if there's an active election
-                if (!data.election) {
-                    this.loading = false;
+                // Check if no active election
+                if (!data) {
                     this.error = "No active election at the moment";
                     setTimeout(
                         () => this.$router.push("/voter/dashboard"),
@@ -256,17 +253,12 @@ export default {
                     return;
                 }
 
-                this.election = data.election;
-
                 // Initialize votes object with empty arrays for each position
-                this.election.positions.forEach((position) => {
+                data.positions.forEach((position) => {
                     this.votes[position.id] = [];
                 });
-
-                this.loading = false;
             } catch (error) {
                 console.error("Error loading vote page:", error);
-                this.loading = false;
 
                 // Handle different error types based on response status
                 if (error.response) {
@@ -368,7 +360,6 @@ export default {
                 return;
             }
 
-            this.loading = true;
             this.error = "";
 
             try {
@@ -378,7 +369,7 @@ export default {
                     votesData[position.id] = this.votes[position.id];
                 }
 
-                const response = await voterAPI.submitVote(votesData);
+                await this.electionStore.submitVote(votesData);
 
                 // Vote submitted successfully
                 this.$router.push("/voter/votes");
@@ -386,8 +377,6 @@ export default {
                 this.error =
                     error.response?.data?.message ||
                     "Failed to submit vote. Please try again.";
-            } finally {
-                this.loading = false;
             }
         },
     },
