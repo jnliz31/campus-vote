@@ -83,6 +83,11 @@ const routes = [
                 component: VoterResults,
             },
             {
+                path: "elections/:id/results",
+                name: "voter-election-results",
+                component: VoterResults,
+            },
+            {
                 path: "profile",
                 name: "voter-profile",
                 component: VoterProfile,

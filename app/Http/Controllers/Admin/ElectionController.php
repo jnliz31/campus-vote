@@ -51,9 +51,6 @@ class ElectionController extends Controller
             'positions.*.candidates.*' => 'required|string|max:255',
         ]);
 
-        // End any active elections
-        Election::where('status', 'active')->update(['status' => 'ended']);
-
         $election = Election::create([
             'title' => $request->title,
             'description' => $request->description ?? '',

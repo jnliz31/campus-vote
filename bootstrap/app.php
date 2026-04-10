@@ -27,6 +27,21 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ]);
+
+        // Exempt authentication routes from CSRF protection
+        $middleware->validateCsrfTokens(except: [
+            '/voter/login',
+            '/admin/login',
+            '/voter/register',
+            '/voter/logout',
+            '/admin/logout',
+            '/voter/auth/google',
+            '/voter/auth/google/callback',
+            '/admin/elections/*/end',
+            '/admin/elections',
+            'voter/logout',
+            'admin/logout',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

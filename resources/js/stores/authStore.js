@@ -103,21 +103,21 @@ export const useAuthStore = defineStore("auth", () => {
     const checkAuthStatus = async () => {
         isLoading.value = true;
         try {
-            // Try voter first
-            const voterCheck = await authAPI.voterCheck().catch(() => null);
-            if (voterCheck?.data?.authenticated) {
-                setUser(voterCheck.data.voter);
-                setToken(voterCheck.data.auth_token);
-                setRole("voter");
-                return true;
-            }
-
-            // Try admin
+            // Try admin first (admin has priority)
             const adminCheck = await authAPI.adminCheck().catch(() => null);
             if (adminCheck?.data?.authenticated) {
                 setUser(adminCheck.data.admin);
                 setToken(adminCheck.data.auth_token);
                 setRole("admin");
+                return true;
+            }
+
+            // Try voter
+            const voterCheck = await authAPI.voterCheck().catch(() => null);
+            if (voterCheck?.data?.authenticated) {
+                setUser(voterCheck.data.voter);
+                setToken(voterCheck.data.auth_token);
+                setRole("voter");
                 return true;
             }
 

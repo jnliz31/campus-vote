@@ -27,39 +27,53 @@ class VotingController extends Controller
 
         $voter = Auth::guard('voter')->user();
         $announcements = Announcement::orderBy('created_at', 'desc')->limit(4)->get();
-        $activeElection = Election::where('status', 'active')->first();
+        $activeElections = Election::where('status', 'active')
+            ->with(['positions.candidates'])
+            ->get();
 
-        // Check if has voted in active election
-        $hasVoted = false;
-        if ($activeElection) {
+        // Check voting status for each active election
+        $activeElections = $activeElections->map(function ($election) use ($voter) {
             $hasVoted = Vote::where('voter_id', $voter->id)
-                ->where('election_id', $activeElection->id)
+                ->where('election_id', $election->id)
                 ->exists();
-        }
+
+            $election->has_voted = $hasVoted;
+            return $election;
+        });
 
         return response()->json([
             'voter' => $voter,
             'announcements' => $announcements,
-            'active_election' => $activeElection,
-            'has_voted' => $hasVoted,
+            'active_elections' => $activeElections,
         ]);
     }
 
     /**
      * Show the voting page.
      */
-    public function vote()
+    public function vote(Request $request)
     {
         if (!request()->expectsJson()) {
             return view('index');
         }
 
         $voter = Auth::guard('voter')->user();
-        $election = Election::where('status', 'active')->with(['positions.candidates'])->first();
+        $electionId = $request->input('election_id');
+
+        if (!$electionId) {
+            return response()->json([
+                'error' => 'Election ID is required'
+            ], 400);
+        }
+
+        $election = Election::where('status', 'active')
+            ->where('id', $electionId)
+            ->with(['positions.candidates'])
+            ->first();
 
         if (!$election) {
             return response()->json([
-                'error' => 'No active election at the moment'
+                'error' => 'Active election not found'
             ], 404);
         }
 
@@ -87,13 +101,22 @@ class VotingController extends Controller
     public function submitVote(Request $request)
     {
         $voter = Auth::guard('voter')->user();
+        $electionId = $request->input('election_id');
+
+        if (!$electionId) {
+            return response()->json([
+                'error' => 'Election ID is required'
+            ], 400);
+        }
+
         $election = Election::where('status', 'active')
+            ->where('id', $electionId)
             ->with(['positions.candidates'])
             ->first();
 
         if (!$election) {
             return response()->json([
-                'error' => 'No active election found'
+                'error' => 'Active election not found'
             ], 404);
         }
 
@@ -244,8 +267,22 @@ class VotingController extends Controller
             return view('index');
         }
 
-        // Get all elections with results
-        $elections = Election::with(['positions.candidates.votes'])->get();
+        // Check if there are any active elections
+        $hasActiveElections = Election::where('status', 'active')->exists();
+
+        // Hide results from voters if any election is active
+        if ($hasActiveElections) {
+            return response()->json([
+                'message' => 'Results are not available until all elections have ended.',
+                'results_available' => false,
+                'results' => [],
+            ]);
+        }
+
+        // Get all elections with results (only ended elections)
+        $elections = Election::with(['positions.candidates.votes'])
+            ->where('status', 'ended')
+            ->get();
 
         $results = $elections->map(function ($election) {
             $positions = $election->positions->map(function ($position) {
@@ -276,6 +313,7 @@ class VotingController extends Controller
 
         return response()->json([
             'results' => $results,
+            'results_available' => true,
         ]);
     }
 

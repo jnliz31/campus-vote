@@ -5,9 +5,10 @@ import { voterAPI, adminAPI } from "../services/api.js";
 export const useElectionStore = defineStore("election", () => {
     // State
     const currentElection = ref(null);
-    const activeElection = ref(null);
+    const activeElections = ref([]);
     const elections = ref([]);
     const results = ref(null);
+    const resultsAvailable = ref(true);
     const announcements = ref([]);
     const isLoading = ref(false);
     const error = ref(null);
@@ -15,7 +16,7 @@ export const useElectionStore = defineStore("election", () => {
     const voteCount = ref(0);
 
     // Computed
-    const hasActiveElection = computed(() => !!activeElection.value);
+    const hasActiveElection = computed(() => activeElections.value.length > 0);
     const electionIsActive = computed(
         () => electionStatus.value?.status === "active",
     );
@@ -28,16 +29,17 @@ export const useElectionStore = defineStore("election", () => {
         currentElection.value = election;
     };
 
-    const setActiveElection = (election) => {
-        activeElection.value = election;
+    const setActiveElections = (elections) => {
+        activeElections.value = elections || [];
     };
 
     const setElections = (data) => {
         elections.value = data;
     };
 
-    const setResults = (data) => {
+    const setResults = (data, available = true) => {
         results.value = data;
+        resultsAvailable.value = available;
     };
 
     const setAnnouncements = (data) => {
@@ -61,11 +63,11 @@ export const useElectionStore = defineStore("election", () => {
     };
 
     // Voter Actions
-    const loadVotePage = async () => {
+    const loadVotePage = async (electionId = null) => {
         isLoading.value = true;
         error.value = null;
         try {
-            const response = await voterAPI.getVote();
+            const response = await voterAPI.getVote(electionId);
             setCurrentElection(response.data.election);
             return response.data;
         } catch (err) {
@@ -82,7 +84,7 @@ export const useElectionStore = defineStore("election", () => {
         error.value = null;
         try {
             const response = await voterAPI.getDashboard();
-            setActiveElection(response.data.active_election);
+            setActiveElections(response.data.active_elections);
             setAnnouncements(response.data.announcements);
             return response.data;
         } catch (err) {
@@ -99,7 +101,10 @@ export const useElectionStore = defineStore("election", () => {
         error.value = null;
         try {
             const response = await voterAPI.getResults();
-            setResults(response.data.results);
+            setResults(
+                response.data.results,
+                response.data.results_available !== false,
+            );
             return response.data;
         } catch (err) {
             error.value =
@@ -110,11 +115,11 @@ export const useElectionStore = defineStore("election", () => {
         }
     };
 
-    const submitVote = async (votes) => {
+    const submitVote = async (votes, electionId = null) => {
         isLoading.value = true;
         error.value = null;
         try {
-            const response = await voterAPI.submitVote(votes);
+            const response = await voterAPI.submitVote(votes, electionId);
             setCurrentElection(null); // Clear after submission
             return response.data;
         } catch (err) {
@@ -404,7 +409,7 @@ export const useElectionStore = defineStore("election", () => {
 
     const resetStore = () => {
         currentElection.value = null;
-        activeElection.value = null;
+        activeElections.value = [];
         elections.value = [];
         results.value = null;
         announcements.value = [];
@@ -417,9 +422,10 @@ export const useElectionStore = defineStore("election", () => {
     return {
         // State
         currentElection,
-        activeElection,
+        activeElections,
         elections,
         results,
+        resultsAvailable,
         announcements,
         voters,
         isLoading,
@@ -434,7 +440,7 @@ export const useElectionStore = defineStore("election", () => {
 
         // Actions
         setCurrentElection,
-        setActiveElection,
+        setActiveElections,
         setElections,
         setResults,
         setAnnouncements,

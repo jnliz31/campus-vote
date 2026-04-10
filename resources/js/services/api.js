@@ -13,6 +13,32 @@ const api = axios.create({
 
 // Add CSRF token to all requests
 api.interceptors.request.use((config) => {
+    // Skip CSRF for exempted routes (login, logout, register, OAuth, end election, create election)
+    const exemptedRoutes = [
+        "/voter/login",
+        "/admin/login",
+        "/voter/register",
+        "/voter/logout",
+        "/admin/logout",
+        "/voter/auth/google",
+        "/voter/auth/google/callback",
+        "/admin/elections",
+    ];
+
+    // Check if URL matches any exempted route pattern
+    const isExempted = exemptedRoutes.some((route) =>
+        config.url?.startsWith(route),
+    );
+
+    // Also check if it's an end election route (pattern: /admin/elections/{id}/end)
+    const isEndElectionRoute = config.url?.match(
+        /\/admin\/elections\/\d+\/end/,
+    );
+
+    if (isExempted || isEndElectionRoute) {
+        return config;
+    }
+
     // Method 1: Get from meta tag (most reliable)
     let token = null;
     const csrfMetaTag = document.querySelector('meta[name="csrf-token"]');
@@ -57,6 +83,29 @@ api.interceptors.response.use(
         // Handle CSRF token mismatch (419 status)
         if (error.response?.status === 419) {
             console.error("CSRF token validation failed. Refreshing page...");
+
+            // Check if this was an exempted route - if so, it shouldn't happen
+            const exemptedRoutes = [
+                "/voter/login",
+                "/admin/login",
+                "/voter/register",
+                "/voter/logout",
+                "/admin/logout",
+                "/voter/auth/google",
+                "/voter/auth/google/callback",
+            ];
+
+            const requestUrl = error.config?.url;
+            const wasExempted = exemptedRoutes.some((route) =>
+                requestUrl?.startsWith(route),
+            );
+
+            if (wasExempted) {
+                console.error(
+                    "CSRF error on exempted route - this should not happen",
+                );
+            }
+
             // Show notification before reload
             const message =
                 error.response?.data?.message ||
@@ -109,8 +158,13 @@ export const authAPI = {
 // Voter API endpoints
 export const voterAPI = {
     getDashboard: () => api.get("/voter/dashboard"),
-    getVote: () => api.get("/voter/vote"),
-    submitVote: (votes) => api.post("/voter/vote", { votes }),
+    getVote: (electionId) =>
+        api.get(
+            "/voter/vote",
+            electionId ? { params: { election_id: electionId } } : {},
+        ),
+    submitVote: (votes, electionId) =>
+        api.post("/voter/vote", { votes, election_id: electionId }),
     getVotes: () => api.get("/voter/votes"),
     getResults: () => api.get("/voter/results"),
     getProfile: () => api.get("/voter/profile"),
