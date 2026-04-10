@@ -26,21 +26,14 @@
                     Cast your vote in active elections and make your voice
                     heard.
                 </p>
-                <template v-if="activeElection">
-                    <template v-if="!hasVoted">
-                        <router-link to="/voter/vote" class="btn btn-primary"
-                            >Start Voting</router-link
-                        >
-                    </template>
-                    <template v-else>
-                        <button class="btn btn-secondary" disabled>
-                            Already Voted
-                        </button>
-                    </template>
+                <template v-if="activeElections.length > 0">
+                    <router-link to="/voter/vote" class="btn btn-primary"
+                        >Vote Now</router-link
+                    >
                 </template>
                 <template v-else>
                     <button class="btn btn-secondary" disabled>
-                        No Active Election
+                        No Active Elections
                     </button>
                 </template>
             </div>
@@ -114,8 +107,8 @@ export default {
         announcements() {
             return this.electionStore.announcements;
         },
-        activeElection() {
-            return this.electionStore.activeElection;
+        activeElections() {
+            return this.electionStore.activeElections || [];
         },
         loading() {
             return this.electionStore.isLoading;
@@ -129,18 +122,16 @@ export default {
             try {
                 const data = await this.electionStore.loadDashboard();
 
-                this.hasVoted = data.has_voted || false;
-
-                // Show status message for both active and no-election cases
-                if (this.activeElection) {
+                // Show status message for multiple active elections
+                if (this.activeElections.length > 0) {
                     this.electionStatus = {
                         type: "info",
-                        message: `${this.activeElection.title} is currently active`,
+                        message: `${this.activeElections.length} active election(s) available`,
                     };
                 } else {
                     this.electionStatus = {
                         type: "warning",
-                        message: "No active election at the moment",
+                        message: "No active elections at the moment",
                     };
                 }
             } catch (error) {
@@ -280,6 +271,47 @@ export default {
 
 .btn-purple:hover {
     background-color: #7c3aed;
+}
+
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 12px;
+}
+
+.elections-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+}
+
+.election-item {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s;
+}
+
+.election-item:hover {
+    border-color: #0366d6;
+    box-shadow: 0 2px 8px rgba(3, 102, 214, 0.1);
+}
+
+.election-item h4 {
+    margin: 0 0 5px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.election-item p {
+    margin: 0;
+    font-size: 12px;
+    color: #666;
 }
 
 .announcements-section {

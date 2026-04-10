@@ -5,47 +5,166 @@
             <div class="header-content">
                 <h1 class="page-title">Cast Your Vote</h1>
                 <p class="header-subtitle">
-                    Select your preferred candidates for each position
+                    Select an election to cast your vote
                 </p>
             </div>
         </div>
 
-        <!-- Loading State -->
-        <div v-if="loading" class="loading-container">
-            <div class="spinner"></div>
-            <p>Loading election...</p>
-        </div>
+        <!-- Election Selection Screen -->
+        <div v-if="!selectedElection" class="election-selection">
+            <div v-if="loading" class="loading-container">
+                <div class="spinner"></div>
+                <p>Loading elections...</p>
+            </div>
 
-        <!-- Already Voted State -->
-        <div v-else-if="alreadyVoted" class="voted-state">
-            <div class="voted-icon">✓</div>
-            <h2>You Have Already Voted</h2>
-            <p>
-                Thank you for participating! You can view your votes and
-                election results on the next page.
-            </p>
-            <p class="redirect-message">Redirecting you...</p>
-        </div>
+            <div v-else-if="error" class="error-state">
+                <div class="error-icon">⚠️</div>
+                <h2>{{ error }}</h2>
+                <button @click="$router.push('/voter/dashboard')" class="btn btn-secondary">
+                    Back to Dashboard
+                </button>
+            </div>
 
-        <!-- Error State -->
-        <div v-else-if="error && !election.title" class="error-state">
-            <div class="error-icon">⚠️</div>
-            <h2>{{ error }}</h2>
-            <p>Redirecting you back to the dashboard...</p>
-        </div>
+            <div v-else-if="activeElections.length === 0" class="empty-state">
+                <div class="empty-icon-wrapper">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-icon">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                </div>
+                <h2 class="empty-title">No Active Elections</h2>
+                <p class="empty-description">
+                    There are currently no active elections available for voting.
+                    Check back later or contact your administrator for more information.
+                </p>
+                <button @click="$router.push('/voter/dashboard')" class="btn btn-primary btn-empty">
+                    <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
+                        <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                    </svg>
+                    Back to Dashboard
+                </button>
+            </div>
 
-        <!-- Valid Election State -->
-        <template v-else>
-            <!-- Election Details Card -->
-            <div class="election-details-card">
-                <div class="election-info">
-                    <h2 class="election-title">{{ election.title }}</h2>
-                    <p class="election-instruction">
-                        Select candidates for each position according to the max
-                        votes allowed
+            <div v-else class="elections-grid">
+                <div
+                    v-for="election in activeElections"
+                    :key="election.id"
+                    class="election-card"
+                    @click="selectElection(election)"
+                >
+                    <div class="election-card-header">
+                        <div class="election-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                            </svg>
+                        </div>
+                        <div class="election-card-status">
+                            <span v-if="election.has_voted" class="status-badge status-voted">
+                                <svg viewBox="0 0 20 20" fill="currentColor" class="status-icon">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                                Voted
+                            </span>
+                            <span v-else class="status-badge status-active">
+                                <svg viewBox="0 0 20 20" fill="currentColor" class="status-icon">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                                </svg>
+                                Active
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <h3 class="election-card-title">{{ election.title }}</h3>
+                    
+                    <p v-if="election.description" class="election-card-description">
+                        {{ election.description }}
                     </p>
+                    
+                    <div class="election-card-stats">
+                        <div class="stat-item">
+                            <svg viewBox="0 0 20 20" fill="currentColor" class="stat-icon">
+                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                            </svg>
+                            <span>{{ election.positions?.length || 0 }} Position(s)</span>
+                        </div>
+                        <div class="stat-item">
+                            <svg viewBox="0 0 20 20" fill="currentColor" class="stat-icon">
+                                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/>
+                            </svg>
+                            <span>{{ getTotalCandidates(election) }} Candidate(s)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="election-card-footer">
+                        <button 
+                            v-if="!election.has_voted" 
+                            class="btn-vote-election"
+                            @click.stop="selectElection(election)"
+                        >
+                            Vote Now
+                            <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
+                                <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                        <button 
+                            v-else 
+                            class="btn-view-results"
+                            @click.stop="$router.push('/voter/results')"
+                        >
+                            View Results
+                            <svg viewBox="0 0 20 20" fill="currentColor" class="btn-icon">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Voting Form Screen -->
+        <template v-else>
+            <!-- Loading State -->
+            <div v-if="loading" class="loading-container">
+                <div class="spinner"></div>
+                <p>Loading election...</p>
+            </div>
+
+            <!-- Already Voted State -->
+            <div v-else-if="alreadyVoted" class="voted-state">
+                <div class="voted-icon">✓</div>
+                <h2>You Have Already Voted</h2>
+                <p>
+                    Thank you for participating! You can view your votes and
+                    election results on the next page.
+                </p>
+                <p class="redirect-message">Redirecting you...</p>
+            </div>
+
+            <!-- Error State -->
+            <div v-else-if="error && !election.title" class="error-state">
+                <div class="error-icon">⚠️</div>
+                <h2>{{ error }}</h2>
+                <button @click="goBackToSelection" class="btn btn-secondary">
+                    Back to Election Selection
+                </button>
+            </div>
+
+            <!-- Valid Election State -->
+            <template v-else>
+                <!-- Election Details Card -->
+                <div class="election-details-card">
+                    <div class="election-info">
+                        <h2 class="election-title">{{ election.title }}</h2>
+                        <p class="election-instruction">
+                            Select candidates for each position according to the max
+                            votes allowed
+                        </p>
+                        <button @click="goBackToSelection" class="btn btn-secondary btn-sm">
+                            ← Back to Elections
+                        </button>
+                    </div>
+                </div>
 
             <!-- Form -->
             <form @submit.prevent="submitVote" id="voteForm">
@@ -177,6 +296,7 @@
                 </div>
             </div>
         </template>
+        </template>
     </div>
 </template>
 
@@ -199,6 +319,10 @@ export default {
             error: "",
             alreadyVoted: false,
             validationErrors: {},
+            electionId: null,
+            selectedElection: null,
+            activeElections: [],
+            loading: false,
         };
     },
     computed: {
@@ -209,9 +333,6 @@ export default {
                     positions: [],
                 }
             );
-        },
-        loading() {
-            return this.electionStore.isLoading;
         },
         isFormValid() {
             for (const position of this.election.positions) {
@@ -233,14 +354,62 @@ export default {
         },
     },
     async mounted() {
-        await this.loadVotePage();
+        // Extract election_id from URL query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        this.electionId = urlParams.get('election_id');
+        
+        if (this.electionId) {
+            // If election_id is provided, load that specific election
+            await this.loadVotePage();
+            this.selectedElection = this.electionId;
+        } else {
+            // Otherwise, load all active elections for selection
+            await this.loadActiveElections();
+        }
     },
     methods: {
+        async loadActiveElections() {
+            this.error = "";
+            this.loading = true;
+            try {
+                const data = await this.electionStore.loadDashboard();
+                this.activeElections = data.active_elections || [];
+            } catch (error) {
+                console.error("Error loading active elections:", error);
+                this.error = "Failed to load elections. Please try again.";
+            } finally {
+                this.loading = false;
+            }
+        },
+        selectElection(election) {
+            if (election.has_voted) {
+                this.error = "You have already voted in this election.";
+                return;
+            }
+            this.electionId = election.id;
+            this.selectedElection = election.id;
+            this.loadVotePage();
+        },
+        goBackToSelection() {
+            this.selectedElection = null;
+            this.electionId = null;
+            this.votes = {};
+            this.error = "";
+            this.alreadyVoted = false;
+            this.loadActiveElections();
+        },
+        getTotalCandidates(election) {
+            if (!election.positions) return 0;
+            return election.positions.reduce((total, position) => {
+                return total + (position.candidates?.length || 0);
+            }, 0);
+        },
         async loadVotePage() {
             this.error = "";
             this.alreadyVoted = false;
+            this.loading = true;
             try {
-                await this.electionStore.loadVotePage();
+                await this.electionStore.loadVotePage(this.electionId);
                 const data = this.electionStore.currentElection;
 
                 // Check if no active election
@@ -296,6 +465,8 @@ export default {
                 }
 
                 setTimeout(() => this.$router.push("/voter/dashboard"), 2000);
+            } finally {
+                this.loading = false;
             }
         },
         toggleVote(positionId, candidateId, maxVotes) {
@@ -369,7 +540,7 @@ export default {
                     votesData[position.id] = this.votes[position.id];
                 }
 
-                await this.electionStore.submitVote(votesData);
+                await this.electionStore.submitVote(votesData, this.electionId);
 
                 // Vote submitted successfully
                 this.$router.push("/voter/votes");
@@ -391,11 +562,9 @@ export default {
 /* Page Header */
 .page-header {
     background: linear-gradient(135deg, #116b27 0%, #22863a 100%);
-    padding: 40px;
-    border-radius: 0;
-    margin-bottom: 30px;
     color: white;
-    box-shadow: 0 4px 12px rgba(17, 107, 39, 0.15);
+    padding: 40px 30px;
+    text-align: center;
 }
 
 .header-content {
@@ -582,6 +751,257 @@ export default {
     color: #666;
     margin: 0;
     line-height: 1.5;
+}
+
+/* Election Selection */
+.election-selection {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 30px 20px;
+}
+
+.elections-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 28px;
+    margin-top: 30px;
+}
+
+.election-card {
+    background: white;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.election-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #116b27, #22863a);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.election-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 32px rgba(17, 107, 39, 0.2);
+    border-color: #116b27;
+}
+
+.election-card:hover::before {
+    opacity: 1;
+}
+
+.election-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.election-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #116b27, #22863a);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+}
+
+.election-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.election-card-status {
+    display: flex;
+    align-items: center;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.status-active {
+    background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+    color: #116b27;
+}
+
+.status-voted {
+    background: linear-gradient(135deg, #f5f5f5, #e0e0e0);
+    color: #666;
+}
+
+.election-card-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+    line-height: 1.3;
+}
+
+.election-card-description {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.6;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.election-card-stats {
+    display: flex;
+    gap: 20px;
+    padding: 16px;
+    background: #f8f9fa;
+    border-radius: 12px;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.stat-icon {
+    width: 18px;
+    height: 18px;
+    color: #116b27;
+}
+
+.election-card-footer {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.btn-vote-election,
+.btn-view-results {
+    width: 100%;
+    padding: 14px 24px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.btn-vote-election {
+    background: linear-gradient(135deg, #116b27, #22863a);
+    color: white;
+}
+
+.btn-vote-election:hover {
+    background: linear-gradient(135deg, #0d5620, #1a6b2e);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(17, 107, 39, 0.3);
+}
+
+.btn-view-results {
+    background: linear-gradient(135deg, #666, #888);
+    color: white;
+}
+
+.btn-view-results:hover {
+    background: linear-gradient(135deg, #555, #777);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 80px 40px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.empty-icon-wrapper {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 32px;
+    background: linear-gradient(135deg, #f0f9f5, #e8f5e9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.empty-icon {
+    width: 60px;
+    height: 60px;
+    color: #116b27;
+}
+
+.empty-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0 0 16px 0;
+}
+
+.empty-description {
+    font-size: 16px;
+    color: #666;
+    line-height: 1.6;
+    margin: 0 0 32px 0;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.btn-empty {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    font-size: 16px;
+    font-weight: 600;
 }
 
 /* Form */

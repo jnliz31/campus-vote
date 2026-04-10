@@ -67,14 +67,27 @@ export default {
     methods: {
         async loadDashboard() {
             try {
-                const response = await this.electionStore.loadAdminElections();
+                // Load elections
+                const electionsResponse = await this.electionStore.loadAdminElections();
+                
                 // Calculate stats from elections
-                this.stats.total_elections = response.elections
-                    ? response.elections.length
+                this.stats.total_elections = electionsResponse.elections
+                    ? electionsResponse.elections.length
                     : 0;
-                this.stats.active_elections = response.elections
-                    ? response.elections.filter((e) => e.status === "active")
+                this.stats.active_elections = electionsResponse.elections
+                    ? electionsResponse.elections.filter((e) => e.status === "active")
                           .length
+                    : 0;
+                
+                // Calculate total votes from elections
+                this.stats.total_votes = electionsResponse.elections
+                    ? electionsResponse.elections.reduce((sum, e) => sum + (e.votes_count || 0), 0)
+                    : 0;
+                
+                // Load voters to get total voters count
+                await this.electionStore.loadVoters();
+                this.stats.total_voters = this.electionStore.voters
+                    ? this.electionStore.voters.length
                     : 0;
             } catch (error) {
                 console.error("Error loading dashboard:", error);

@@ -114,22 +114,23 @@ export default {
     data() {
         return {
             votes: [],
+            loading: false,
         };
     },
     computed: {
-        loading() {
-            return this.electionStore.isLoading;
-        },
     },
     async mounted() {
         await this.loadVotes();
     },
     methods: {
         async loadVotes() {
+            this.loading = true;
             try {
                 this.votes = await this.electionStore.loadVotes();
             } catch (error) {
                 console.error("Error loading votes:", error);
+            } finally {
+                this.loading = false;
             }
         },
         formatDate(date) {
