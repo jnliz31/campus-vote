@@ -13,7 +13,7 @@ const api = axios.create({
 
 // Add CSRF token to all requests
 api.interceptors.request.use((config) => {
-    // Skip CSRF for exempted routes (login, logout, register, OAuth, end election, create election)
+    // Skip CSRF for exempted routes (login, logout, register, OAuth)
     const exemptedRoutes = [
         "/voter/login",
         "/admin/login",
@@ -22,7 +22,6 @@ api.interceptors.request.use((config) => {
         "/admin/logout",
         "/voter/auth/google",
         "/voter/auth/google/callback",
-        "/admin/elections",
     ];
 
     // Check if URL matches any exempted route pattern
@@ -66,11 +65,23 @@ api.interceptors.request.use((config) => {
         }
     }
 
+    // Method 4: Fallback to localStorage (as backup)
+    if (!token) {
+        token = localStorage.getItem("csrf_token");
+    }
+
+    // Method 5: Fallback to window object
+    if (!token && window.csrfToken) {
+        token = window.csrfToken;
+    }
+
     // Add token to headers - Laravel expects this header
     if (token) {
         config.headers["X-CSRF-TOKEN"] = token;
+        // Also try X-XSRF-TOKEN header
+        config.headers["X-XSRF-TOKEN"] = token;
     } else {
-        console.warn("CSRF token not found in document");
+        console.warn("CSRF token not found - some requests may fail");
     }
 
     return config;
@@ -82,37 +93,32 @@ api.interceptors.response.use(
     (error) => {
         // Handle CSRF token mismatch (419 status)
         if (error.response?.status === 419) {
-            console.error("CSRF token validation failed. Refreshing page...");
+            console.error("CSRF token validation failed");
 
-            // Check if this was an exempted route - if so, it shouldn't happen
-            const exemptedRoutes = [
-                "/voter/login",
-                "/admin/login",
-                "/voter/register",
-                "/voter/logout",
-                "/admin/logout",
-                "/voter/auth/google",
-                "/voter/auth/google/callback",
-            ];
-
-            const requestUrl = error.config?.url;
-            const wasExempted = exemptedRoutes.some((route) =>
-                requestUrl?.startsWith(route),
-            );
-
-            if (wasExempted) {
-                console.error(
-                    "CSRF error on exempted route - this should not happen",
-                );
+            // Try to recover by getting a fresh token
+            const csrfMetaTag = document.querySelector('meta[name="csrf-token"]');
+            if (csrfMetaTag && csrfMetaTag.content) {
+                const freshToken = csrfMetaTag.content;
+                localStorage.setItem("csrf_token", freshToken);
+                window.csrfToken = freshToken;
+                
+                // Update the failed request with new token and retry once
+                error.config.headers["X-CSRF-TOKEN"] = freshToken;
+                error.config.headers["X-XSRF-TOKEN"] = freshToken;
+                
+                console.log("Retrying request with fresh CSRF token...");
+                return api.request(error.config);
             }
 
-            // Show notification before reload
+            // If we can't recover, refresh the page
+            console.error("Could not recover fresh CSRF token. Refreshing page...");
+            
             const message =
                 error.response?.data?.message ||
-                "Your session has expired. Please try again.";
+                "Session security token expired. Refreshing page...";
             console.error("Error:", message);
 
-            // Reload page after a brief delay to ensure user sees the message
+            // Reload page after a brief delay
             setTimeout(() => {
                 window.location.reload();
             }, 500);

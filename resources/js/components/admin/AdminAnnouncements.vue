@@ -2,7 +2,11 @@
     <div>
         <div class="page-header">
             <h1 class="page-title">Announcements</h1>
-            <button @click="showForm = !showForm" class="btn btn-primary">
+            <button 
+                @click="showForm = !showForm" 
+                class="btn btn-primary"
+                :disabled="loading || deletingId !== null || loadingAnnouncements"
+            >
                 {{ showForm ? "Cancel" : "Add Announcement" }}
             </button>
         </div>
@@ -15,6 +19,7 @@
                         v-model="form.content"
                         rows="4"
                         required
+                        :disabled="loading"
                     ></textarea>
                 </div>
                 <button
@@ -81,6 +86,7 @@ export default {
             showForm: false,
             loading: false,
             deletingId: null,
+            submitting: false,
         };
     },
     computed: {
@@ -89,6 +95,9 @@ export default {
         },
         loadingAnnouncements() {
             return this.electionStore.isLoading;
+        },
+        isAnyOperationInProgress() {
+            return this.loading || this.deletingId !== null || this.submitting;
         },
     },
     mounted() {
@@ -103,12 +112,18 @@ export default {
             }
         },
         async saveAnnouncement() {
+            // Prevent duplicate submissions
+            if (this.submitting || this.loading) {
+                return;
+            }
+
             if (!this.form.content.trim()) {
                 this.showError("Please enter announcement content");
                 return;
             }
 
             this.loading = true;
+            this.submitting = true;
 
             try {
                 await this.electionStore.createAnnouncement({
@@ -118,12 +133,23 @@ export default {
                 this.showForm = false;
                 this.showSuccess("Announcement posted successfully!");
             } catch (error) {
-                this.showError("Failed to post announcement");
+                console.error("Error saving announcement:", error);
+                const errorMessage =
+                    error.response?.data?.message ||
+                    error.message ||
+                    "Failed to post announcement";
+                this.showError(errorMessage);
             } finally {
                 this.loading = false;
+                this.submitting = false;
             }
         },
         async deleteAnnouncement(announcementId) {
+            // Prevent duplicate deletions
+            if (this.deletingId !== null || this.loading || this.submitting) {
+                return;
+            }
+
             const confirmed = await this.showConfirmDangerous(
                 "Are you sure you want to delete this announcement? This action cannot be undone.",
                 {
@@ -133,6 +159,11 @@ export default {
             );
 
             if (!confirmed) return;
+
+            // Double-check after confirmation that no other operation is in progress
+            if (this.isAnyOperationInProgress) {
+                return;
+            }
 
             this.deletingId = announcementId;
 
@@ -212,6 +243,12 @@ export default {
     box-shadow: 0 0 0 3px rgba(17, 107, 39, 0.1);
 }
 
+.form-group textarea:disabled {
+    background-color: #f5f5f5;
+    color: #999;
+    cursor: not-allowed;
+}
+
 .loading {
     text-align: center;
     padding: 40px;
@@ -271,7 +308,7 @@ export default {
 }
 
 .btn-primary:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
@@ -285,8 +322,13 @@ export default {
     color: white;
 }
 
-.btn-danger:hover {
+.btn-danger:hover:not(:disabled) {
     background-color: #cb2431;
+}
+
+.btn-danger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .empty-state {
