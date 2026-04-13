@@ -49,8 +49,9 @@
                     <button
                         @click="deleteAnnouncement(announcement.id)"
                         class="btn btn-sm btn-danger"
+                        :disabled="deletingId === announcement.id"
                     >
-                        Delete
+                        {{ deletingId === announcement.id ? "Deleting..." : "Delete" }}
                     </button>
                 </div>
             </div>
@@ -79,6 +80,7 @@ export default {
             form: { content: "" },
             showForm: false,
             loading: false,
+            deletingId: null,
         };
     },
     computed: {
@@ -132,6 +134,8 @@ export default {
 
             if (!confirmed) return;
 
+            this.deletingId = announcementId;
+
             try {
                 await this.electionStore.deleteAnnouncement(announcementId);
                 this.showSuccess("Announcement deleted successfully!");
@@ -142,6 +146,8 @@ export default {
                     error.message ||
                     "Failed to delete announcement";
                 this.showError(errorMessage);
+            } finally {
+                this.deletingId = null;
             }
         },
         formatDate(date) {

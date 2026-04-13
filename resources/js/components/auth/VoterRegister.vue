@@ -159,20 +159,21 @@ export default {
 }
 
 .logo-icon {
-    width: 80px;
-    height: 80px;
+    width: 200px;
+    height: 200px;
     background-color: #22863a;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
-    margin-bottom: 20px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
 .logo-icon img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    width: 75%;
+    height: 75%;
+    object-fit: contain;
     border-radius: 8px;
 }
 

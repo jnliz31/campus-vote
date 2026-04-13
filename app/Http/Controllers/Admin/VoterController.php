@@ -23,15 +23,6 @@ class VoterController extends Controller
     public function destroy(Voter $voter)
     {
         try {
-            // Check if voter has any votes
-            $voteCount = $voter->votes()->count();
-            if ($voteCount > 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "Cannot delete voter with existing votes ({$voteCount} votes found). This maintains vote integrity.",
-                ], 422);
-            }
-
             $voter->delete();
 
             return response()->json([
