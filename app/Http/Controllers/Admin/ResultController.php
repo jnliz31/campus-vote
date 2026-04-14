@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Election;
-use App\Models\Voter;
 use Illuminate\Http\Request;
 
 class ResultController extends Controller
@@ -39,6 +38,7 @@ class ResultController extends Controller
             return [
                 'id' => $election->id,
                 'title' => $election->title,
+                'status' => $election->status,
                 'positions' => $positions,
             ];
         });

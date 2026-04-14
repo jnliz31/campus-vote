@@ -4,13 +4,22 @@
         <div class="page-header">
             <div class="header-content">
                 <div class="header-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                        />
                     </svg>
                 </div>
                 <div>
                     <h1 class="page-title">Election Results</h1>
-                    <p class="page-subtitle">View and manage election results</p>
+                    <p class="page-subtitle">
+                        View and manage election results
+                    </p>
                 </div>
             </div>
         </div>
@@ -23,8 +32,15 @@
             >
                 <div class="election-header">
                     <div class="election-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path
+                                d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+                            />
                         </svg>
                     </div>
                     <h2 class="election-title">{{ election.title }}</h2>
@@ -38,19 +54,35 @@
                         class="position-section"
                     >
                         <div class="position-header">
-                            <svg viewBox="0 0 20 20" fill="currentColor" class="position-icon">
-                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
-                                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                            <svg
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="position-icon"
+                            >
+                                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
+                                    clip-rule="evenodd"
+                                />
                             </svg>
                             <h3 class="position-name">{{ position.name }}</h3>
                         </div>
 
                         <div class="candidates-results">
                             <div
-                                v-for="(candidate, index) in position.candidates"
+                                v-for="(
+                                    candidate, index
+                                ) in position.candidates"
                                 :key="candidate.id"
                                 class="candidate-result"
-                                :class="{ 'winner': index === 0 }"
+                                :class="{
+                                    winner: isWinner(
+                                        election,
+                                        candidate,
+                                        index,
+                                    ),
+                                }"
                             >
                                 <div class="candidate-header">
                                     <div class="candidate-info">
@@ -58,34 +90,61 @@
                                             {{ getInitials(candidate.name) }}
                                         </div>
                                         <div>
-                                            <span class="candidate-name">{{ candidate.name }}</span>
-                                            <span v-if="index === 0" class="winner-badge">
-                                                <svg viewBox="0 0 20 20" fill="currentColor" class="crown-icon">
-                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                            <span class="candidate-name">{{
+                                                candidate.name
+                                            }}</span>
+                                            <span
+                                                v-if="
+                                                    isWinner(
+                                                        election,
+                                                        candidate,
+                                                        index,
+                                                    )
+                                                "
+                                                class="winner-badge"
+                                            >
+                                                <svg
+                                                    viewBox="0 0 20 20"
+                                                    fill="currentColor"
+                                                    class="crown-icon"
+                                                >
+                                                    <path
+                                                        d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                                                    />
                                                 </svg>
                                                 Winner
                                             </span>
                                         </div>
                                     </div>
-                                    <span class="vote-count">{{ candidate.vote_count }} votes</span>
+                                    <span class="vote-count"
+                                        >{{ candidate.vote_count }} votes</span
+                                    >
                                 </div>
                                 <div class="progress-bar">
                                     <div
                                         class="progress-fill"
                                         :style="{
-                                            width: (candidate.percentage || 0) + '%',
+                                            width:
+                                                (candidate.percentage || 0) +
+                                                '%',
                                         }"
                                     >
                                         <span
                                             v-if="candidate.percentage > 10"
                                             class="percentage"
-                                            >{{ Math.round(candidate.percentage) }}%</span
+                                            >{{
+                                                Math.round(
+                                                    candidate.percentage,
+                                                )
+                                            }}%</span
                                         >
                                     </div>
                                     <span
                                         v-if="candidate.percentage <= 10"
                                         class="percentage-outside"
-                                        >{{ Math.round(candidate.percentage) }}%</span
+                                        >{{
+                                            Math.round(candidate.percentage)
+                                        }}%</span
                                     >
                                 </div>
                             </div>
@@ -96,12 +155,22 @@
         </div>
         <div v-else class="empty-state">
             <div class="empty-icon-wrapper">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="empty-icon">
-                    <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    class="empty-icon"
+                >
+                    <path
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    />
                 </svg>
             </div>
             <h2 class="empty-title">No Results Yet</h2>
-            <p class="empty-message">No election results are available at this time.</p>
+            <p class="empty-message">
+                No election results are available at this time.
+            </p>
         </div>
     </div>
 </template>
@@ -135,12 +204,25 @@ export default {
             }
         },
         getInitials(name) {
-            if (!name) return '?';
-            const parts = name.trim().split(' ');
+            if (!name) return "?";
+            const parts = name.trim().split(" ");
             if (parts.length === 1) {
                 return parts[0].charAt(0).toUpperCase();
             }
-            return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+            return (
+                parts[0].charAt(0) + parts[parts.length - 1].charAt(0)
+            ).toUpperCase();
+        },
+        isWinner(election, candidate, index) {
+            // Only show winner if:
+            // 1. Election is ended
+            // 2. This is the top candidate (index 0)
+            // 3. The candidate has at least 1 vote (not 0 votes)
+            return (
+                election.status === "ended" &&
+                index === 0 &&
+                candidate.vote_count > 0
+            );
         },
     },
 };

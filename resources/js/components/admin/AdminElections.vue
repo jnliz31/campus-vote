@@ -309,7 +309,7 @@ export default {
                 await this.electionStore.deleteElection(electionId);
                 // Show success message
                 this.showSuccess("Election deleted successfully!");
-                await this.loadElections();
+                // Note: No need to reload - the store already removes it from elections array
             } catch (error) {
                 console.error("Error deleting election:", error);
                 const errorMessage =
